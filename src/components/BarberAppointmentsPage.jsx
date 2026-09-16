@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { 
   Calendar, Clock, Phone, MessageSquare, CheckCircle2, XCircle, 
   RefreshCw, ArrowLeft, ExternalLink, Scissors, User, AlertCircle, 
-  ChevronLeft, ChevronRight, ShieldCheck, DollarSign
+  ChevronLeft, ChevronRight, ShieldCheck, DollarSign, X
 } from 'lucide-react';
 import { 
   fetchAdminAppointments, 
@@ -49,20 +49,55 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
   const [filterMode, setFilterMode] = useState('date'); // 'date' or 'upcoming_all'
   const dateInputRef = useRef(null);
 
+  // Calendar Modal State & Navigation
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarMonthDate, setCalendarMonthDate] = useState(() => new Date());
+
+  const monthNamesSpanish = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   const handleOpenCalendar = () => {
-    if (dateInputRef.current) {
-      if (typeof dateInputRef.current.showPicker === 'function') {
-        try {
-          dateInputRef.current.showPicker();
-          return;
-        } catch {
-          // fallback
-        }
-      }
-      dateInputRef.current.focus();
-      dateInputRef.current.click();
-    }
+    setIsCalendarModalOpen(true);
+    try {
+      const [y, m] = selectedDate.split('-').map(Number);
+      setCalendarMonthDate(new Date(y, m - 1, 1));
+    } catch {}
   };
+
+  const handleNavMonth = (delta) => {
+    setCalendarMonthDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
+
+  // Full Month Days Grid calculation
+  const daysInMonthGrid = useMemo(() => {
+    const year = calendarMonthDate.getFullYear();
+    const month = calendarMonthDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Monday = 0, Sunday = 6 in Spanish/European format
+    let startDayOfWeek = firstDay.getDay() - 1;
+    if (startDayOfWeek === -1) startDayOfWeek = 6;
+
+    const days = [];
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ empty: true });
+    }
+
+    const totalDays = lastDay.getDate();
+    for (let d = 1; d <= totalDays; d++) {
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        empty: false,
+        dayNumber: d,
+        iso
+      });
+    }
+
+    return days;
+  }, [calendarMonthDate]);
 
   // Live clock
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -350,7 +385,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
       </header>
 
       {/* Main Agenda Body */}
-      <main style={{ flex: 1, padding: '0.85rem clamp(0.65rem, 2.5vw, 1.25rem)', maxWidth: '900px', width: '100%', margin: '0 auto' }}>
+      <main style={{ flex: 1, padding: '0.85rem clamp(0.65rem, 2.5vw, 1.25rem)', paddingBottom: '6rem', maxWidth: '900px', width: '100%', margin: '0 auto' }}>
         
         {/* Error notification banner */}
         {errorMsg && (
@@ -398,7 +433,9 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               fontWeight: 800,
               fontSize: '0.75rem',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             HOY ({todayCount})
@@ -416,7 +453,9 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               fontWeight: 800,
               fontSize: '0.75rem',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             MAÑANA ({tomorrowCount})
@@ -434,33 +473,12 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               fontWeight: 800,
               fontSize: '0.75rem',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             PASADO ({dayAfterCount})
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenCalendar}
-            style={{
-              padding: '0.45rem 0.75rem',
-              whiteSpace: 'nowrap',
-              backgroundColor: '#ffffff',
-              color: '#09090b',
-              border: '1px solid #09090b',
-              fontWeight: 800,
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem'
-            }}
-            title="Abrir calendario completo"
-          >
-            <Calendar size={13} />
-            <span>CALENDARIO</span>
           </button>
 
           <button
@@ -476,7 +494,9 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               fontSize: '0.75rem',
               cursor: 'pointer',
               flexShrink: 0,
-              marginLeft: 'auto'
+              marginLeft: 'auto',
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             TODAS ({upcomingCount})
@@ -489,13 +509,15 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
             style={{ 
               backgroundColor: '#ffffff', 
               border: '1px solid #09090b', 
+              borderRadius: '6px',
               padding: '0.45rem 0.65rem', 
               marginBottom: '0.75rem', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between', 
               gap: '0.5rem',
-              width: '100%'
+              width: '100%',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
             }}
           >
             {/* 1. Botón Día Anterior (A la izquierda) */}
@@ -512,7 +534,8 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                 justifyContent: 'center', 
                 cursor: 'pointer', 
                 flexShrink: 0,
-                borderRadius: 0
+                borderRadius: '4px',
+                transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
               }}
               title="Día anterior"
               aria-label="Día anterior"
@@ -520,7 +543,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               <ChevronLeft size={20} />
             </button>
 
-            {/* 2. Botón Centro: Toca para abrir Calendario */}
+            {/* 2. Botón Centro: Toca para abrir Calendario interactivo */}
             <button
               type="button"
               onClick={handleOpenCalendar}
@@ -529,17 +552,18 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                 minWidth: 0,
                 backgroundColor: '#f4f4f5',
                 border: '1px solid #e4e4e7',
-                padding: '0.35rem 0.5rem',
+                padding: '0.45rem 0.5rem',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 0
+                borderRadius: '6px',
+                transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
               }}
               title="Toca para elegir cualquier fecha en el calendario"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', maxWidth: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', maxWidth: '100%' }}>
                 <Calendar size={14} style={{ color: '#09090b', flexShrink: 0 }} />
                 <span 
                   className="font-headline" 
@@ -558,7 +582,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               </div>
               {selectedDate === todayIso ? (
                 <span style={{ fontSize: '0.625rem', color: '#16a34a', fontWeight: 800, fontFamily: 'var(--font-mono)', marginTop: '0.1rem' }}>
-                  ● DÍA DE HOY (TOCA PARA CAMBIAR DÍA)
+                  ● DÍA DE HOY (TOCA PARA CAMBIAR FECHA)
                 </span>
               ) : (
                 <span style={{ fontSize: '0.6rem', color: '#71717a', fontFamily: 'var(--font-mono)', marginTop: '0.1rem' }}>
@@ -567,31 +591,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               )}
             </button>
 
-            {/* Input nativo de fecha totalmente fuera de pantalla (cero interferencia física) */}
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(e.target.value);
-                  setFilterMode('date');
-                }
-              }}
-              style={{ 
-                position: 'fixed', 
-                top: '-9999px', 
-                left: '-9999px', 
-                opacity: 0, 
-                pointerEvents: 'none', 
-                width: '1px', 
-                height: '1px' 
-              }}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-
-            {/* 3. Botón Día Siguiente (A la derecha del todo, totalmente aislado) */}
+            {/* 3. Botón Día Siguiente (A la derecha) */}
             <button
               type="button"
               onClick={() => handleShiftDate(1)}
@@ -605,7 +605,8 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                 justifyContent: 'center', 
                 cursor: 'pointer', 
                 flexShrink: 0,
-                borderRadius: 0
+                borderRadius: '4px',
+                transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
               }}
               title="Día siguiente"
               aria-label="Día siguiente"
@@ -886,6 +887,194 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
         )}
 
       </main>
+
+      {/* Botón Flotante del Calendario (Abajo a la Izquierda) con Animación de Pulso */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 'max(1.25rem, env(safe-area-inset-bottom, 20px))',
+          left: '1.25rem',
+          zIndex: 45
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleOpenCalendar}
+          className="barber-floating-calendar-btn"
+          title="Abrir selector de calendario completo"
+        >
+          <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Calendar size={16} />
+            <span className="calendar-live-dot" />
+          </span>
+          <span>CALENDARIO</span>
+        </button>
+      </div>
+
+      {/* Modal de Calendario Completo Interactivo (100% Funcional y Fiable) */}
+      {isCalendarModalOpen && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setIsCalendarModalOpen(false)}
+          style={{ zIndex: 100 }}
+        >
+          <div 
+            className="modal-content" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px', padding: '1.25rem' }}
+          >
+            {/* Cabecera del Modal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', borderBottom: '1px solid #e4e4e7', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 30, height: 30, backgroundColor: '#09090b', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
+                  <Calendar size={16} />
+                </div>
+                <div>
+                  <h3 className="font-headline" style={{ fontSize: '1.125rem', lineHeight: 1, color: '#09090b' }}>
+                    AGENDA · ELEGIR FECHA
+                  </h3>
+                  <span className="font-mono" style={{ fontSize: '0.65rem', color: '#71717a' }}>
+                    Toca cualquier día para consultar tus citas
+                  </span>
+                </div>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setIsCalendarModalOpen(false)}
+                style={{ background: '#f4f4f5', border: '1px solid #e4e4e7', width: 30, height: 30, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Cerrar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Navegador de Mes */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: '6px', padding: '0.45rem 0.65rem' }}>
+              <button
+                type="button"
+                onClick={() => handleNavMonth(-1)}
+                style={{ width: 32, height: 32, border: '1px solid #e4e4e7', backgroundColor: '#ffffff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Mes anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              
+              <span className="font-headline" style={{ fontSize: '1.05rem', textTransform: 'capitalize', color: '#09090b' }}>
+                {monthNamesSpanish[calendarMonthDate.getMonth()]} {calendarMonthDate.getFullYear()}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => handleNavMonth(1)}
+                style={{ width: 32, height: 32, border: '1px solid #e4e4e7', backgroundColor: '#ffffff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Mes siguiente"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* Cabecera de Días de la semana */}
+            <div className="calendar-weekdays-grid font-mono" style={{ fontSize: '0.7rem', color: '#71717a', fontWeight: 700 }}>
+              <div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div><div>DOM</div>
+            </div>
+
+            {/* Rejilla de Días del Mes */}
+            <div className="calendar-days-grid">
+              {daysInMonthGrid.map((item, idx) => {
+                if (item.empty) {
+                  return <div key={`empty-${idx}`} style={{ minHeight: 44 }} />;
+                }
+                const isSelected = selectedDate === item.iso;
+                const isToday = item.iso === todayIso;
+                const aptsOnDay = appointments.filter(a => a.appointment_date === item.iso && a.status !== 'cancelled').length;
+
+                return (
+                  <button
+                    key={item.iso}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDate(item.iso);
+                      setFilterMode('date');
+                      setIsCalendarModalOpen(false);
+                    }}
+                    className={`calendar-day-btn ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
+                    style={{ minHeight: 46, position: 'relative' }}
+                  >
+                    <span>{item.dayNumber}</span>
+                    {aptsOnDay > 0 && (
+                      <span 
+                        style={{ 
+                          fontSize: '0.575rem', 
+                          fontWeight: 800, 
+                          color: isSelected ? '#ffffff' : '#15803d',
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#dcfce7',
+                          padding: '0.05rem 0.25rem',
+                          borderRadius: '2px',
+                          marginTop: '0.1rem',
+                          lineHeight: 1
+                        }}
+                      >
+                        {aptsOnDay} cita{aptsOnDay > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Accesos Rápidos */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px solid #e4e4e7', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate(todayIso);
+                  setFilterMode('date');
+                  setIsCalendarModalOpen(false);
+                }}
+                className="font-mono"
+                style={{
+                  flex: 1,
+                  padding: '0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  backgroundColor: selectedDate === todayIso ? '#09090b' : '#f4f4f5',
+                  color: selectedDate === todayIso ? '#ffffff' : '#09090b',
+                  border: '1px solid #09090b',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                IR A HOY
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate(tomorrowIso);
+                  setFilterMode('date');
+                  setIsCalendarModalOpen(false);
+                }}
+                className="font-mono"
+                style={{
+                  flex: 1,
+                  padding: '0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  backgroundColor: selectedDate === tomorrowIso ? '#09090b' : '#f4f4f5',
+                  color: selectedDate === tomorrowIso ? '#ffffff' : '#09090b',
+                  border: '1px solid #e4e4e7',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                IR A MAÑANA
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
