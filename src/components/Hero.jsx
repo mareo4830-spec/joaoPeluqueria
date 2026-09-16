@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, ArrowRight, Shield, CheckCircle2, Clock } from 'lucide-react';
+import { Star, MapPin, ArrowRight, Shield, CheckCircle2, Clock, ShoppingBag } from 'lucide-react';
 
 export default function Hero({ onOpenBooking }) {
   const address = "Av. Alcalde Federico Molina Orta, 4, 21007, Huelva";
@@ -87,22 +87,36 @@ export default function Hero({ onOpenBooking }) {
               </a>
             </div>
 
-            {/* Call to Action Buttons (100% responsive, zero cuts) */}
-            <div className="hero-actions-container">
+            {/* Call to Action Buttons */}
+            <div className="hero-actions-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', maxWidth: '440px' }}>
               <button
                 onClick={() => onOpenBooking(null)}
                 className="hero-btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
               >
                 <span>PEDIR CITA</span>
                 <ArrowRight size={18} />
               </button>
 
-              <a
-                href="#servicios"
-                className="hero-btn-secondary"
-              >
-                VER SERVICIOS
-              </a>
+              {/* Botón Ver Servicios a la izquierda (50%) y Tienda de Productos a la derecha (50%) */}
+              <div className="hero-sub-actions-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', width: '100%' }}>
+                <a
+                  href="#servicios"
+                  className="hero-btn-secondary"
+                  style={{ width: '100%', padding: '0.9rem 0.5rem', textAlign: 'center', justifyContent: 'center', fontSize: 'clamp(0.8125rem, 2.2vw, 0.9375rem)', whiteSpace: 'nowrap' }}
+                >
+                  VER SERVICIOS
+                </a>
+
+                <a
+                  href="#productos"
+                  className="hero-btn-secondary"
+                  style={{ width: '100%', padding: '0.9rem 0.5rem', textAlign: 'center', justifyContent: 'center', fontSize: 'clamp(0.8125rem, 2.2vw, 0.9375rem)', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <ShoppingBag size={15} />
+                  <span>TIENDA</span>
+                </a>
+              </div>
             </div>
           </div>
 

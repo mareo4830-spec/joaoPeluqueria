@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Phone, MessageSquare, CheckCircle2, XCircle, 
   RefreshCw, ArrowLeft, ExternalLink, Scissors, User, AlertCircle, 
@@ -47,6 +47,22 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
 
   const [selectedDate, setSelectedDate] = useState(todayIso);
   const [filterMode, setFilterMode] = useState('date'); // 'date' or 'upcoming_all'
+  const dateInputRef = useRef(null);
+
+  const handleOpenCalendar = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        try {
+          dateInputRef.current.showPicker();
+          return;
+        } catch {
+          // fallback
+        }
+      }
+      dateInputRef.current.focus();
+      dateInputRef.current.click();
+    }
+  };
 
   // Live clock
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -426,6 +442,29 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
 
           <button
             type="button"
+            onClick={handleOpenCalendar}
+            style={{
+              padding: '0.45rem 0.75rem',
+              whiteSpace: 'nowrap',
+              backgroundColor: '#ffffff',
+              color: '#09090b',
+              border: '1px solid #09090b',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+            title="Abrir calendario completo"
+          >
+            <Calendar size={13} />
+            <span>CALENDARIO</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setFilterMode('upcoming_all')}
             style={{
               padding: '0.45rem 0.75rem',
@@ -444,54 +483,135 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
           </button>
         </div>
 
-        {/* Date Navigator (Single Compact Row) */}
+        {/* Date Navigator - Left Arrow, Center Calendar Button, Right Arrow (Zero Overlap Guaranteed) */}
         {filterMode === 'date' && (
-          <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.55rem 0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <div 
+            style={{ 
+              backgroundColor: '#ffffff', 
+              border: '1px solid #09090b', 
+              padding: '0.45rem 0.65rem', 
+              marginBottom: '0.75rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              gap: '0.5rem',
+              width: '100%'
+            }}
+          >
+            {/* 1. Botón Día Anterior (A la izquierda) */}
             <button
               type="button"
               onClick={() => handleShiftDate(-1)}
-              style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+              style={{ 
+                width: 38, 
+                height: 38, 
+                border: '1px solid #09090b', 
+                backgroundColor: '#ffffff', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                cursor: 'pointer', 
+                flexShrink: 0,
+                borderRadius: 0
+              }}
               title="Día anterior"
+              aria-label="Día anterior"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
             </button>
 
-            <div style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
-              <div className="font-headline" style={{ fontSize: 'clamp(0.95rem, 3.8vw, 1.25rem)', textTransform: 'capitalize', color: '#09090b', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {formattedSelectedDate}
+            {/* 2. Botón Centro: Toca para abrir Calendario */}
+            <button
+              type="button"
+              onClick={handleOpenCalendar}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                backgroundColor: '#f4f4f5',
+                border: '1px solid #e4e4e7',
+                padding: '0.35rem 0.5rem',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 0
+              }}
+              title="Toca para elegir cualquier fecha en el calendario"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', maxWidth: '100%' }}>
+                <Calendar size={14} style={{ color: '#09090b', flexShrink: 0 }} />
+                <span 
+                  className="font-headline" 
+                  style={{ 
+                    fontSize: 'clamp(0.95rem, 3.8vw, 1.25rem)', 
+                    textTransform: 'capitalize', 
+                    color: '#09090b', 
+                    lineHeight: 1.1, 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis' 
+                  }}
+                >
+                  {formattedSelectedDate}
+                </span>
               </div>
-              {selectedDate === todayIso && (
-                <span style={{ fontSize: '0.625rem', color: '#16a34a', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                  ● DÍA DE HOY
+              {selectedDate === todayIso ? (
+                <span style={{ fontSize: '0.625rem', color: '#16a34a', fontWeight: 800, fontFamily: 'var(--font-mono)', marginTop: '0.1rem' }}>
+                  ● DÍA DE HOY (TOCA PARA CAMBIAR DÍA)
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.6rem', color: '#71717a', fontFamily: 'var(--font-mono)', marginTop: '0.1rem' }}>
+                  Toca para elegir otra fecha
                 </span>
               )}
-            </div>
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={() => handleShiftDate(1)}
-                style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                title="Día siguiente"
-              >
-                <ChevronRight size={18} />
-              </button>
+            {/* Input nativo de fecha totalmente fuera de pantalla (cero interferencia física) */}
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value);
+                  setFilterMode('date');
+                }
+              }}
+              style={{ 
+                position: 'fixed', 
+                top: '-9999px', 
+                left: '-9999px', 
+                opacity: 0, 
+                pointerEvents: 'none', 
+                width: '1px', 
+                height: '1px' 
+              }}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
 
-              <label style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} title="Elegir fecha">
-                <Calendar size={15} />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setSelectedDate(e.target.value);
-                      setFilterMode('date');
-                    }
-                  }}
-                  style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-                />
-              </label>
-            </div>
+            {/* 3. Botón Día Siguiente (A la derecha del todo, totalmente aislado) */}
+            <button
+              type="button"
+              onClick={() => handleShiftDate(1)}
+              style={{ 
+                width: 38, 
+                height: 38, 
+                border: '1px solid #09090b', 
+                backgroundColor: '#ffffff', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                cursor: 'pointer', 
+                flexShrink: 0,
+                borderRadius: 0
+              }}
+              title="Día siguiente"
+              aria-label="Día siguiente"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
         )}
 
