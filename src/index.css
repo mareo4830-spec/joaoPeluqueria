@@ -1,0 +1,748 @@
+/* ==========================================================================
+   JOAO PELUQUERO'S — HALLMARK FRAMEWORK DESIGN SYSTEM
+   Anti-template · Brutalist · Minimalist · Streetwear
+   Full Mobile & Desktop Responsive System with Anti-Word-Break Guarantees
+   ========================================================================== */
+
+:root {
+  --bg-pure: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-surface: #f4f4f5;
+  --text-main: #09090b;
+  --text-sub: #27272a;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
+  
+  --border-solid: #09090b;
+  --border-subtle: #e4e4e7;
+  --border-light: #f4f4f5;
+
+  --font-headline: 'Oswald', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --max-w: 1280px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-pure);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  background-color: var(--bg-pure);
+  color: var(--text-main);
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Prevención universal de auto-zoom en móviles (iOS Safari / Chrome / Brave) */
+input, select, textarea {
+  font-size: 16px !important; /* Mínimo 16px estricto: evita que iOS haga zoom automático al tocar cualquier campo */
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+button, a, .calendar-day-btn {
+  touch-action: manipulation; /* Evita retardo de 300ms y zooms accidentales por doble toque */
+}
+
+/* Global Anti-Word-Break & Clean Wrapping Standards */
+h1, h2, h3, h4, h5, h6, .font-headline {
+  text-wrap: balance;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+p, span, li, blockquote, label {
+  text-wrap: pretty;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+img, svg, iframe, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+::selection {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Brutalist Streetwear Typography
+   -------------------------------------------------------------------------- */
+.font-headline {
+  font-family: var(--font-headline);
+  text-transform: uppercase;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.hero-massive-title {
+  font-family: var(--font-headline);
+  font-size: clamp(2.5rem, 8vw, 5.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.015em;
+  line-height: 0.95;
+  color: #000000;
+  margin-bottom: 1.25rem;
+  position: relative;
+  word-break: normal;
+  hyphens: none;
+}
+
+.hero-title-nowrap {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.015em;
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* --------------------------------------------------------------------------
+   Layout Containers & Grids
+   -------------------------------------------------------------------------- */
+.app-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.editorial-container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+@media (max-width: 768px) {
+  .editorial-container {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .editorial-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Block Buttons & Technical Actions
+   -------------------------------------------------------------------------- */
+.btn-solid-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  padding: 1rem 1.75rem;
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 0px;
+  text-decoration: none;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn-solid-black:hover {
+  background-color: #18181b;
+  transform: translateY(-1px);
+}
+
+.btn-solid-black:active {
+  transform: translateY(1px);
+}
+
+.btn-solid-black:disabled {
+  background-color: #d4d4d8;
+  border-color: #d4d4d8;
+  color: #71717a;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline-brutal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background-color: transparent;
+  color: #09090b;
+  border: 1px solid #09090b;
+  padding: 1rem 1.75rem;
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 0px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn-outline-brutal:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn-outline-brutal:active {
+  transform: translateY(1px);
+}
+
+.hero-actions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+}
+
+.hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background-color: #000000;
+  color: #ffffff;
+  border: 2px solid #000000;
+  padding: 1.15rem 2.25rem;
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 0px;
+  text-decoration: none;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.hero-btn-primary:hover {
+  background-color: #18181b;
+  transform: translateY(-1px);
+}
+
+.hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background-color: transparent;
+  color: #09090b;
+  border: 2px solid #09090b;
+  padding: 1.15rem 2rem;
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 0px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.hero-btn-secondary:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .hero-actions-container {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-btn-primary, .hero-btn-secondary {
+    width: 100%;
+    padding: 1.15rem 1rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Technical Badges
+   -------------------------------------------------------------------------- */
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-solid);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background-color: var(--bg-pure);
+  color: var(--text-main);
+  border-radius: 0;
+  line-height: 1.2;
+}
+
+.tech-badge-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  background-color: var(--bg-subtle);
+  color: var(--text-sub);
+  line-height: 1.2;
+}
+
+/* --------------------------------------------------------------------------
+   Borders
+   -------------------------------------------------------------------------- */
+.border-b-solid {
+  border-bottom: 1px solid var(--border-solid);
+}
+
+.border-t-solid {
+  border-top: 1px solid var(--border-solid);
+}
+
+.border-b-subtle {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.border-t-subtle {
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Services Architecture
+   -------------------------------------------------------------------------- */
+.services-list-container {
+  width: 100%;
+}
+
+.service-item-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 120px 140px 140px;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.service-item-row:first-child {
+  border-top: 1px solid var(--border-solid);
+}
+
+.service-item-row:last-child {
+  border-bottom: 1px solid var(--border-solid);
+}
+
+.service-item-row:hover {
+  background-color: #fafafa;
+}
+
+@media (max-width: 900px) {
+  .service-item-row {
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
+    padding: 1.5rem 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .service-item-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1.5rem 0.75rem;
+  }
+
+  .service-mobile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .service-mobile-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-subtle);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Modal & Dialog System
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background-color: rgba(9, 9, 11, 0.75);
+  backdrop-filter: grayscale(100%) contrast(120%);
+  -webkit-backdrop-filter: grayscale(100%) contrast(120%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0;
+  position: relative;
+  box-shadow: none;
+  margin: auto;
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  
+  .modal-content {
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-width: 1px 0 0 0;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 20px));
+  }
+
+  .booking-modal-body {
+    padding: 1rem 0.85rem 2.5rem 0.85rem !important;
+  }
+
+  .booking-ticket-box {
+    padding: 1rem 0.75rem !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #18181b;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+}
+
+/* --------------------------------------------------------------------------
+   Services Menu List & Rows
+   -------------------------------------------------------------------------- */
+.services-list-container {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #09090b;
+}
+
+.service-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #e4e4e7;
+  transition: background-color 0.15s ease;
+}
+
+@media (max-width: 640px) {
+  .service-item-row {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    padding: 1.25rem 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Products Catalog Grid (2 columns on mobile)
+   -------------------------------------------------------------------------- */
+.products-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .products-catalog-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .product-card-mobile {
+    padding: 0.65rem !important;
+  }
+
+  .product-image-container-mobile {
+    height: 140px !important;
+  }
+
+  .product-title-mobile {
+    font-size: 0.95rem !important;
+    line-height: 1.15 !important;
+    min-height: 2.2em !important;
+  }
+
+  .product-desc-mobile {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 0.6875rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  .product-price-mobile {
+    font-size: 1.15rem !important;
+  }
+
+  .product-btn-mobile {
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.6875rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Full Month Responsive Calendar
+   -------------------------------------------------------------------------- */
+.calendar-full-month {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #09090b;
+  padding: 1rem;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.calendar-weekdays-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+}
+
+.calendar-day-btn {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e4e4e7;
+  background-color: #ffffff;
+  color: #09090b;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.1s ease;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.2rem;
+  min-height: 42px;
+}
+
+.calendar-day-btn:hover:not(:disabled) {
+  border-color: #09090b;
+  background-color: #f4f4f5;
+}
+
+.calendar-day-btn.selected {
+  background-color: #09090b !important;
+  color: #ffffff !important;
+  border-color: #09090b !important;
+}
+
+.calendar-day-btn:disabled {
+  background-color: #fafafa;
+  color: #d4d4d8;
+  border-color: #f4f4f5;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.calendar-day-btn.is-full {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+  cursor: not-allowed !important;
+  opacity: 0.95;
+}
+
+.calendar-day-btn.is-today {
+  border-color: #09090b;
+  font-weight: 900;
+}
+
+@media (max-width: 480px) {
+  .calendar-full-month {
+    padding: 0.65rem;
+  }
+  
+  .calendar-days-grid {
+    gap: 0.2rem;
+  }
+
+  .calendar-day-btn {
+    min-height: 38px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ==============================================================================
+   ESTILOS EDITORIALES LEGALES (HALLMARK FRAMEWORK)
+   ============================================================================== */
+.legal-article {
+  font-family: var(--font-body);
+  color: #18181b;
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+.legal-article h1 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-weight: 800;
+  color: #09090b;
+  letter-spacing: -0.02em;
+}
+
+.legal-article h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  color: #09090b;
+  margin-top: 2.5rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #e4e4e7;
+  letter-spacing: -0.01em;
+}
+
+.legal-article p {
+  margin-bottom: 1.25rem;
+  color: #3f3f46;
+}
+
+.legal-article ul, .legal-article ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.legal-article li {
+  margin-bottom: 0.65rem;
+  color: #3f3f46;
+}
+
+.legal-callout {
+  border-left: 3px solid #09090b;
+  background-color: #fafafa;
+  padding: 1.15rem 1.35rem;
+  margin-bottom: 2.25rem;
+  font-size: 0.875rem;
+  color: #27272a;
+  line-height: 1.6;
+}
+
+.legal-tag {
+  font-family: var(--font-mono);
+  background-color: #f4f4f5;
+  border: 1px solid #d4d4d8;
+  color: #09090b;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 2px;
+}
+

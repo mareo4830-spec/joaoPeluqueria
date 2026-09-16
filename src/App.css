@@ -1,0 +1,21 @@
+/* Custom responsive refinements for Joao Peluquero's */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .sm-inline {
+    display: none !important;
+  }
+
+}
+
+@media (min-width: 769px) {
+  .sm-inline {
+    display: inline !important;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
