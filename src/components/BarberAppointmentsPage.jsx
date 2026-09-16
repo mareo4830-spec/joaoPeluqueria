@@ -157,7 +157,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
   const stats = useMemo(() => {
     const list = appointments.filter((a) => a.appointment_date === selectedDate);
     const total = list.length;
-    const confirmed = list.filter((a) => a.status === 'confirmed').length;
+    const confirmed = list.filter((a) => a.status === 'confirmed' || !a.status).length;
     const completed = list.filter((a) => a.status === 'completed').length;
     const cancelled = list.filter((a) => a.status === 'cancelled').length;
 
@@ -172,52 +172,43 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
     return { total, confirmed, completed, cancelled, totalIncome };
   }, [appointments, selectedDate]);
 
-  // Format date display (e.g. "Miércoles, 16 de Septiembre")
+  // Format date display (e.g. "Miércoles, 16 Sep")
   const formattedSelectedDate = useMemo(() => {
     const [y, m, d] = selectedDate.split('-').map(Number);
     const dateObj = new Date(y, m - 1, d);
     return dateObj.toLocaleDateString('es-ES', { 
-      weekday: 'long', 
+      weekday: 'short', 
       day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+      month: 'short'
     });
   }, [selectedDate]);
+
+  const todayCount = useMemo(() => appointments.filter(a => a.appointment_date === todayIso && a.status !== 'cancelled').length, [appointments, todayIso]);
+  const tomorrowCount = useMemo(() => appointments.filter(a => a.appointment_date === tomorrowIso && a.status !== 'cancelled').length, [appointments, tomorrowIso]);
+  const dayAfterCount = useMemo(() => appointments.filter(a => a.appointment_date === dayAfterTomorrowIso && a.status !== 'cancelled').length, [appointments, dayAfterTomorrowIso]);
+  const upcomingCount = useMemo(() => appointments.filter(a => a.appointment_date >= todayIso && a.status !== 'cancelled').length, [appointments, todayIso]);
 
   // IF NOT AUTHENTICATED AS ADMIN: SHOW QUICK BARBER ACCESS SCREEN
   if (!isAdminLoggedIn) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#09090b', color: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-        <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#18181b', border: '1px solid #27272a', padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-            <div style={{ width: 46, height: 46, backgroundColor: '#ffffff', color: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
-              <Scissors size={24} />
+      <div style={{ minHeight: '100vh', backgroundColor: '#09090b', color: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
+        <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#18181b', border: '1px solid #27272a', padding: '1.75rem 1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <div style={{ width: 44, height: 44, backgroundColor: '#ffffff', color: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
+              <Scissors size={22} />
             </div>
           </div>
 
-          <h1 className="font-headline" style={{ fontSize: '1.5rem', textAlign: 'center', letterSpacing: '-0.02em', marginBottom: '0.35rem' }}>
+          <h1 className="font-headline" style={{ fontSize: '1.4rem', textAlign: 'center', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
             AGENDA DE CITAS · JOÃO
           </h1>
-          <p className="font-mono" style={{ fontSize: '0.75rem', color: '#a1a1aa', textAlign: 'center', marginBottom: '1.5rem' }}>
-            Acceso privado exclusivo para el peluquero.
+          <p className="font-mono" style={{ fontSize: '0.75rem', color: '#a1a1aa', textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.4 }}>
+            Introduce tu PIN de administrador para consultar tu agenda en directo.
           </p>
 
           {authError && (
-            <div 
-              style={{ 
-                backgroundColor: '#7f1d1d', 
-                border: '1px solid #dc2626', 
-                color: '#ffffff', 
-                padding: '0.65rem 0.85rem', 
-                marginBottom: '1rem',
-                fontSize: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-              className="font-mono"
-            >
-              <AlertCircle size={16} />
+            <div style={{ backgroundColor: '#fef2f2', border: '1px solid #ef4444', color: '#991b1b', padding: '0.65rem 0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem' }} className="font-mono">
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>PIN incorrecto. Inténtalo de nuevo.</span>
             </div>
           )}
@@ -225,41 +216,38 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
           <form onSubmit={handleLogin}>
             <input
               type="password"
+              inputMode="numeric"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+              placeholder="Introduce tu PIN"
               required
               autoFocus
-              inputMode="numeric"
-              placeholder="Introduce tu PIN"
-              value={pinInput}
-              onChange={(e) => {
-                setPinInput(e.target.value);
-                setAuthError(false);
-              }}
+              className="font-mono"
               style={{
                 width: '100%',
-                padding: '0.85rem 1rem',
-                border: '1px solid #3f3f46',
+                padding: '0.85rem',
                 backgroundColor: '#09090b',
                 color: '#ffffff',
-                fontSize: '1.25rem',
+                border: '1px solid #3f3f46',
+                borderRadius: 0,
+                fontSize: '16px',
                 textAlign: 'center',
-                fontFamily: 'monospace',
                 letterSpacing: '0.25em',
-                marginBottom: '1.25rem',
-                outline: 'none',
-                borderRadius: 0
+                marginBottom: '1rem',
+                outline: 'none'
               }}
             />
 
             <button
               type="submit"
               className="btn-solid-black"
-              style={{ width: '100%', padding: '0.9rem', backgroundColor: '#ffffff', color: '#09090b', fontWeight: 800 }}
+              style={{ width: '100%', padding: '0.85rem', backgroundColor: '#ffffff', color: '#09090b', fontWeight: 800, fontSize: '0.8125rem' }}
             >
               ENTRAR A MI AGENDA
             </button>
           </form>
 
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
             <button
               type="button"
               onClick={onNavigateHome}
@@ -274,68 +262,71 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
     );
   }
 
-  // AUTHENTICATED BARBER AGENDA VIEW
+  // AUTHENTICATED BARBER AGENDA VIEW (100% Mobile First & Responsive)
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', color: '#09090b', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', color: '#09090b', display: 'flex', flexDirection: 'column', width: '100%' }}>
       
       {/* Top Barber Header Bar */}
-      <header style={{ backgroundColor: '#09090b', color: '#ffffff', borderBottom: '2px solid #27272a', padding: '0.85rem clamp(1rem, 3vw, 2.5rem)', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <header style={{ backgroundColor: '#09090b', color: '#ffffff', borderBottom: '2px solid #27272a', padding: '0.65rem clamp(0.75rem, 2.5vw, 1.5rem)', position: 'sticky', top: 0, zIndex: 40, width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', width: '100%', maxWidth: '900px', margin: '0 auto' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 36, height: 36, backgroundColor: '#ffffff', color: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
-              <Scissors size={20} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+            <div style={{ width: 32, height: 32, backgroundColor: '#ffffff', color: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, flexShrink: 0 }}>
+              <Scissors size={18} />
             </div>
-            <div>
-              <div className="font-headline" style={{ fontSize: '1.25rem', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                AGENDA EN VIVO · JOÃO
+            <div style={{ minWidth: 0 }}>
+              <div className="font-headline" style={{ fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                AGENDA JOÃO
               </div>
-              <div className="font-mono" style={{ fontSize: '0.65rem', color: '#a1a1aa', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div className="font-mono" style={{ fontSize: '0.6rem', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
-                <span>SINCRONIZADO EN TIEMPO REAL</span>
+                <span>EN VIVO</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Action Navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Action Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => loadAppointments(true)}
               disabled={isRefreshing}
-              className="btn-outline-brutal"
+              className="font-mono"
               style={{ 
-                padding: '0.45rem 0.85rem', 
-                fontSize: '0.75rem', 
+                padding: '0.4rem 0.55rem', 
+                fontSize: '0.6875rem', 
                 color: '#ffffff', 
-                borderColor: '#3f3f46',
+                border: '1px solid #3f3f46',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                backgroundColor: '#18181b'
+                gap: '0.25rem',
+                backgroundColor: '#18181b',
+                cursor: 'pointer'
               }}
               title="Refrescar citas"
             >
-              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              <span className="font-mono">{isRefreshing ? 'CARGANDO...' : 'ACTUALIZAR'}</span>
+              <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? '...' : 'REFRESCAR'}</span>
             </button>
 
             <button
               type="button"
               onClick={onNavigateToAdmin}
-              className="btn-outline-brutal"
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', color: '#ffffff', borderColor: '#3f3f46', backgroundColor: '#18181b' }}
+              className="font-mono"
+              style={{ padding: '0.4rem 0.55rem', fontSize: '0.6875rem', color: '#ffffff', border: '1px solid #3f3f46', backgroundColor: '#18181b', cursor: 'pointer' }}
+              title="Panel de Administración"
             >
-              PANEL ADMIN
+              ADMIN
             </button>
 
             <button
               type="button"
               onClick={onNavigateHome}
-              className="btn-outline-brutal"
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', color: '#ffffff', borderColor: '#3f3f46', backgroundColor: '#18181b' }}
+              className="font-mono"
+              style={{ padding: '0.4rem 0.55rem', fontSize: '0.6875rem', color: '#ffffff', border: '1px solid #3f3f46', backgroundColor: '#18181b', cursor: 'pointer' }}
+              title="Volver a la web pública"
             >
-              VER WEB
+              WEB
             </button>
           </div>
 
@@ -343,7 +334,7 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
       </header>
 
       {/* Main Agenda Body */}
-      <main style={{ flex: 1, padding: 'clamp(1rem, 2.5vw, 2rem) clamp(0.75rem, 3vw, 2.5rem)', maxWidth: '1050px', width: '100%', margin: '0 auto' }}>
+      <main style={{ flex: 1, padding: '0.85rem clamp(0.65rem, 2.5vw, 1.25rem)', maxWidth: '900px', width: '100%', margin: '0 auto' }}>
         
         {/* Error notification banner */}
         {errorMsg && (
@@ -352,143 +343,142 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
               backgroundColor: '#fef2f2', 
               border: '1px solid #ef4444', 
               color: '#991b1b', 
-              padding: '0.75rem 1rem', 
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.8125rem'
-            }}
+              padding: '0.65rem 0.85rem', 
+              marginBottom: '0.75rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.75rem' 
+            }} 
             className="font-mono"
           >
-            <AlertCircle size={16} />
+            <AlertCircle size={15} />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* Date Selector and Quick Day Pills */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '1.25rem', marginBottom: '1.5rem', boxShadow: '0 2px 0 #09090b' }}>
-          
-          {/* Quick Filter Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }} className="font-mono">
+        {/* Quick Day Filter Tabs - Touch scrollable */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            gap: '0.35rem', 
+            overflowX: 'auto', 
+            paddingBottom: '0.35rem', 
+            marginBottom: '0.75rem', 
+            scrollbarWidth: 'none', 
+            WebkitOverflowScrolling: 'touch' 
+          }} 
+          className="font-mono"
+        >
+          <button
+            type="button"
+            onClick={() => { setSelectedDate(todayIso); setFilterMode('date'); }}
+            style={{
+              padding: '0.45rem 0.75rem',
+              whiteSpace: 'nowrap',
+              backgroundColor: filterMode === 'date' && selectedDate === todayIso ? '#09090b' : '#ffffff',
+              color: filterMode === 'date' && selectedDate === todayIso ? '#ffffff' : '#09090b',
+              border: '1px solid #09090b',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            HOY ({todayCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setSelectedDate(tomorrowIso); setFilterMode('date'); }}
+            style={{
+              padding: '0.45rem 0.75rem',
+              whiteSpace: 'nowrap',
+              backgroundColor: filterMode === 'date' && selectedDate === tomorrowIso ? '#09090b' : '#ffffff',
+              color: filterMode === 'date' && selectedDate === tomorrowIso ? '#ffffff' : '#09090b',
+              border: '1px solid #09090b',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            MAÑANA ({tomorrowCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setSelectedDate(dayAfterTomorrowIso); setFilterMode('date'); }}
+            style={{
+              padding: '0.45rem 0.75rem',
+              whiteSpace: 'nowrap',
+              backgroundColor: filterMode === 'date' && selectedDate === dayAfterTomorrowIso ? '#09090b' : '#ffffff',
+              color: filterMode === 'date' && selectedDate === dayAfterTomorrowIso ? '#ffffff' : '#09090b',
+              border: '1px solid #09090b',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            PASADO ({dayAfterCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterMode('upcoming_all')}
+            style={{
+              padding: '0.45rem 0.75rem',
+              whiteSpace: 'nowrap',
+              backgroundColor: filterMode === 'upcoming_all' ? '#09090b' : '#ffffff',
+              color: filterMode === 'upcoming_all' ? '#ffffff' : '#09090b',
+              border: '1px solid #09090b',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0,
+              marginLeft: 'auto'
+            }}
+          >
+            TODAS ({upcomingCount})
+          </button>
+        </div>
+
+        {/* Date Navigator (Single Compact Row) */}
+        {filterMode === 'date' && (
+          <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.55rem 0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <button
               type="button"
-              onClick={() => {
-                setSelectedDate(todayIso);
-                setFilterMode('date');
-              }}
-              style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: filterMode === 'date' && selectedDate === todayIso ? '#09090b' : '#f4f4f5',
-                color: filterMode === 'date' && selectedDate === todayIso ? '#ffffff' : '#09090b',
-                border: '1px solid #09090b',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                cursor: 'pointer'
-              }}
+              onClick={() => handleShiftDate(-1)}
+              style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+              title="Día anterior"
             >
-              HOY ({appointments.filter(a => a.appointment_date === todayIso && a.status !== 'cancelled').length})
+              <ChevronLeft size={18} />
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedDate(tomorrowIso);
-                setFilterMode('date');
-              }}
-              style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: filterMode === 'date' && selectedDate === tomorrowIso ? '#09090b' : '#f4f4f5',
-                color: filterMode === 'date' && selectedDate === tomorrowIso ? '#ffffff' : '#09090b',
-                border: '1px solid #09090b',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                cursor: 'pointer'
-              }}
-            >
-              MAÑANA ({appointments.filter(a => a.appointment_date === tomorrowIso && a.status !== 'cancelled').length})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedDate(dayAfterTomorrowIso);
-                setFilterMode('date');
-              }}
-              style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: filterMode === 'date' && selectedDate === dayAfterTomorrowIso ? '#09090b' : '#f4f4f5',
-                color: filterMode === 'date' && selectedDate === dayAfterTomorrowIso ? '#ffffff' : '#09090b',
-                border: '1px solid #09090b',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                cursor: 'pointer'
-              }}
-            >
-              PASADO MAÑANA ({appointments.filter(a => a.appointment_date === dayAfterTomorrowIso && a.status !== 'cancelled').length})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setFilterMode('upcoming_all')}
-              style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: filterMode === 'upcoming_all' ? '#09090b' : '#f4f4f5',
-                color: filterMode === 'upcoming_all' ? '#ffffff' : '#09090b',
-                border: '1px solid #09090b',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-                marginLeft: 'auto'
-              }}
-            >
-              TODAS LAS PRÓXIMAS ({appointments.filter(a => a.appointment_date >= todayIso && a.status !== 'cancelled').length})
-            </button>
-          </div>
-
-          {/* Date Navigator (Previous / Current Date / Next) */}
-          {filterMode === 'date' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid #e4e4e7', paddingTop: '1rem' }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleShiftDate(-1)}
-                  className="btn-outline-brutal"
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                  title="Día anterior"
-                >
-                  <ChevronLeft size={16} />
-                  <span className="font-mono">ANTERIOR</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleShiftDate(1)}
-                  className="btn-outline-brutal"
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                  title="Día siguiente"
-                >
-                  <span className="font-mono">SIGUIENTE</span>
-                  <ChevronRight size={16} />
-                </button>
+            <div style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
+              <div className="font-headline" style={{ fontSize: 'clamp(0.95rem, 3.8vw, 1.25rem)', textTransform: 'capitalize', color: '#09090b', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {formattedSelectedDate}
               </div>
+              {selectedDate === todayIso && (
+                <span style={{ fontSize: '0.625rem', color: '#16a34a', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                  ● DÍA DE HOY
+                </span>
+              )}
+            </div>
 
-              {/* Formatted Date Title */}
-              <div style={{ textAlign: 'center' }}>
-                <div className="font-headline" style={{ fontSize: 'clamp(1.15rem, 3vw, 1.45rem)', textTransform: 'capitalize', color: '#09090b' }}>
-                  {formattedSelectedDate}
-                </div>
-                {selectedDate === todayIso && (
-                  <span className="tech-badge" style={{ backgroundColor: '#16a34a', color: '#ffffff', marginTop: '0.2rem' }}>
-                    ● DÍA ACTUAL (HOY)
-                  </span>
-                )}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => handleShiftDate(1)}
+                style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Día siguiente"
+              >
+                <ChevronRight size={18} />
+              </button>
 
-              {/* Direct date picker input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Calendar size={16} style={{ color: '#71717a' }} />
+              <label style={{ width: 34, height: 34, border: '1px solid #09090b', backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} title="Elegir fecha">
+                <Calendar size={15} />
                 <input
                   type="date"
                   value={selectedDate}
@@ -498,61 +488,51 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                       setFilterMode('date');
                     }
                   }}
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    border: '1px solid #09090b',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.8125rem',
-                    borderRadius: 0,
-                    outline: 'none',
-                    backgroundColor: '#ffffff'
-                  }}
+                  style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
                 />
-              </div>
-
+              </label>
             </div>
-          )}
+          </div>
+        )}
 
-        </div>
-
-        {/* Daily Summary Counters */}
+        {/* Daily Summary Ribbon - 4 compact responsive columns */}
         {filterMode === 'date' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.85rem 1rem' }}>
-              <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', display: 'block' }}>TOTAL CITAS</span>
-              <span className="font-headline" style={{ fontSize: '1.75rem', color: '#09090b' }}>{stats.total}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+              <div className="font-mono" style={{ fontSize: '0.55rem', color: '#71717a' }}>TOTAL</div>
+              <div className="font-headline" style={{ fontSize: '1.25rem', lineHeight: 1, color: '#09090b', marginTop: '0.15rem' }}>{stats.total}</div>
             </div>
 
-            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.85rem 1rem' }}>
-              <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', display: 'block' }}>PENDIENTES</span>
-              <span className="font-headline" style={{ fontSize: '1.75rem', color: '#d97706' }}>{stats.confirmed}</span>
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+              <div className="font-mono" style={{ fontSize: '0.55rem', color: '#71717a' }}>PEND.</div>
+              <div className="font-headline" style={{ fontSize: '1.25rem', lineHeight: 1, color: '#d97706', marginTop: '0.15rem' }}>{stats.confirmed}</div>
             </div>
 
-            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.85rem 1rem' }}>
-              <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', display: 'block' }}>COMPLETADAS</span>
-              <span className="font-headline" style={{ fontSize: '1.75rem', color: '#16a34a' }}>{stats.completed}</span>
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+              <div className="font-mono" style={{ fontSize: '0.55rem', color: '#71717a' }}>LISTAS</div>
+              <div className="font-headline" style={{ fontSize: '1.25rem', lineHeight: 1, color: '#16a34a', marginTop: '0.15rem' }}>{stats.completed}</div>
             </div>
 
-            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.85rem 1rem' }}>
-              <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', display: 'block' }}>CAJA ESTIMADA</span>
-              <span className="font-headline" style={{ fontSize: '1.75rem', color: '#09090b' }}>{stats.totalIncome.toFixed(2).replace('.', ',')} €</span>
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+              <div className="font-mono" style={{ fontSize: '0.55rem', color: '#71717a' }}>CAJA</div>
+              <div className="font-headline" style={{ fontSize: '1.05rem', lineHeight: 1, color: '#09090b', marginTop: '0.25rem' }}>{stats.totalIncome}€</div>
             </div>
           </div>
         )}
 
         {/* Appointments List / Timeline */}
         {isLoading ? (
-          <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '3rem 1rem', textAlign: 'center' }}>
-            <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem', color: '#09090b' }} />
-            <div className="font-mono" style={{ fontSize: '0.875rem', fontWeight: 700 }}>CARGANDO CITAS DEL SERVIDOR...</div>
+          <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '2.5rem 1rem', textAlign: 'center' }}>
+            <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.65rem', color: '#09090b' }} />
+            <div className="font-mono" style={{ fontSize: '0.8125rem', fontWeight: 700 }}>CARGANDO CITAS DEL SERVIDOR...</div>
           </div>
         ) : visibleAppointments.length === 0 ? (
-          <div style={{ backgroundColor: '#ffffff', border: '1px dashed #09090b', padding: '3.5rem 1.5rem', textAlign: 'center' }}>
-            <Calendar size={36} style={{ margin: '0 auto 0.75rem', color: '#a1a1aa' }} />
-            <h3 className="font-headline" style={{ fontSize: '1.35rem', color: '#09090b', marginBottom: '0.35rem' }}>
+          <div style={{ backgroundColor: '#ffffff', border: '1px dashed #09090b', padding: '2.5rem 1rem', textAlign: 'center' }}>
+            <Calendar size={32} style={{ margin: '0 auto 0.5rem', color: '#a1a1aa' }} />
+            <h3 className="font-headline" style={{ fontSize: '1.2rem', color: '#09090b', marginBottom: '0.25rem' }}>
               NO HAY CITAS REGISTRADAS
             </h3>
-            <p className="font-mono" style={{ fontSize: '0.8125rem', color: '#71717a', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+            <p className="font-mono" style={{ fontSize: '0.75rem', color: '#71717a', maxWidth: '350px', margin: '0 auto 1.25rem' }}>
               {filterMode === 'date' 
                 ? `No hay ninguna cita programada para el ${formattedSelectedDate}.`
                 : 'No hay ninguna cita próxima pendiente en la agenda.'}
@@ -562,14 +542,14 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                 type="button"
                 onClick={() => setSelectedDate(todayIso)}
                 className="btn-solid-black"
-                style={{ padding: '0.75rem 1.25rem', fontSize: '0.8125rem' }}
+                style={{ padding: '0.65rem 1rem', fontSize: '0.75rem' }}
               >
-                VOLVER AL DÍA DE HOY
+                VOLVER A HOY
               </button>
             )}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {visibleAppointments.map((apt) => {
               const isCompleted = apt.status === 'completed';
               const isCancelled = apt.status === 'cancelled';
@@ -590,165 +570,191 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
                     backgroundColor: '#ffffff',
                     border: '1px solid #09090b',
                     boxShadow: isCompleted ? 'none' : '0 2px 0 #09090b',
-                    padding: 'clamp(1rem, 2.5vw, 1.35rem)',
-                    opacity: isCancelled ? 0.6 : isCompleted ? 0.8 : 1,
+                    padding: '0.85rem clamp(0.75rem, 2vw, 1rem)',
+                    opacity: isCancelled ? 0.6 : isCompleted ? 0.85 : 1,
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    
-                    {/* Left: Time and Service Info */}
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                      {/* Big Bold Time */}
+                  {/* Row 1: Time, Service Title, Price & Status */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                       <div 
+                        className="font-mono"
                         style={{ 
                           backgroundColor: isCompleted ? '#f4f4f5' : isCancelled ? '#fef2f2' : '#09090b', 
                           color: isCompleted ? '#71717a' : isCancelled ? '#dc2626' : '#ffffff',
-                          padding: '0.65rem 0.85rem',
-                          textAlign: 'center',
-                          minWidth: '85px',
-                          border: '1px solid #09090b'
+                          padding: '0.35rem 0.55rem',
+                          fontSize: '1.25rem',
+                          fontWeight: 900,
+                          lineHeight: 1,
+                          border: '1px solid #09090b',
+                          flexShrink: 0
                         }}
-                        className="font-mono"
                       >
-                        <div style={{ fontSize: '1.4rem', fontWeight: 900, lineHeight: 1 }}>
-                          {apt.appointment_time}
-                        </div>
-                        {filterMode === 'upcoming_all' && (
-                          <div style={{ fontSize: '0.625rem', marginTop: '0.25rem', color: isCompleted ? '#a1a1aa' : '#e4e4e7' }}>
-                            {apt.appointment_date}
-                          </div>
-                        )}
+                        {apt.appointment_time}
                       </div>
 
-                      {/* Service & Client Details */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <h4 className="font-headline" style={{ fontSize: '1.25rem', color: '#09090b', margin: 0, textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <h4 className="font-headline" style={{ fontSize: '1.05rem', color: '#09090b', margin: 0, textDecoration: isCancelled ? 'line-through' : 'none', lineHeight: 1.1 }}>
                             {apt.service_name}
                           </h4>
-                          <span className="tech-badge" style={{ backgroundColor: '#f4f4f5', color: '#09090b', border: '1px solid #09090b', fontWeight: 800 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, backgroundColor: '#f4f4f5', padding: '0.1rem 0.35rem', border: '1px solid #09090b' }}>
                             {apt.service_price}
                           </span>
                         </div>
-
-                        {/* Client details */}
-                        <div className="font-mono" style={{ fontSize: '0.875rem', marginTop: '0.4rem', color: '#27272a', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, color: '#09090b', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <User size={15} style={{ color: '#71717a' }} />
-                            {apt.client_name}
-                          </span>
-                          <span style={{ color: '#a1a1aa' }}>·</span>
-                          <a 
-                            href={`tel:${apt.client_phone}`}
-                            style={{ color: '#09090b', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}
-                          >
-                            <Phone size={14} style={{ color: '#16a34a' }} />
-                            {apt.client_phone}
-                          </a>
-                        </div>
-
-                        {/* Optional notes */}
-                        {apt.notes && (
-                          <div className="font-mono" style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '0.35rem', backgroundColor: '#fafafa', padding: '0.35rem 0.5rem', borderLeft: '2px solid #09090b' }}>
-                            Nota: {apt.notes}
+                        {filterMode === 'upcoming_all' && (
+                          <div className="font-mono" style={{ fontSize: '0.625rem', color: '#71717a', marginTop: '0.15rem' }}>
+                            📅 {apt.appointment_date}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Right: Status Badge */}
-                    <div>
-                      {isCompleted && (
-                        <span className="tech-badge" style={{ backgroundColor: '#16a34a', color: '#ffffff' }}>
-                          ✓ COMPLETADA
+                    {/* Status badge */}
+                    <div style={{ flexShrink: 0 }}>
+                      {isCompleted ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '0.2rem 0.45rem', fontSize: '0.625rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                          <CheckCircle2 size={11} />
+                          <span>LISTA</span>
                         </span>
-                      )}
-                      {isConfirmed && (
-                        <span className="tech-badge" style={{ backgroundColor: '#d97706', color: '#ffffff' }}>
-                          ● PENDIENTE / EN AGENDA
+                      ) : isCancelled ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '0.2rem 0.45rem', fontSize: '0.625rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                          <XCircle size={11} />
+                          <span>CANCELADA</span>
                         </span>
-                      )}
-                      {isCancelled && (
-                        <span className="tech-badge" style={{ backgroundColor: '#dc2626', color: '#ffffff' }}>
-                          ✕ CANCELADA
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '0.2rem 0.45rem', fontSize: '0.625rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                          <Clock size={11} />
+                          <span>CONFIRMADA</span>
                         </span>
                       )}
                     </div>
-
                   </div>
 
-                  {/* Bottom Action Buttons (Large, Comfortable Touch-Targets) */}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', borderTop: '1px solid #f4f4f5', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
-                    
-                    {/* Direct WhatsApp Button */}
+                  {/* Row 2: Client Info & Phone */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', padding: '0.4rem 0', borderTop: '1px solid #f4f4f5', borderBottom: '1px solid #f4f4f5', marginBottom: '0.65rem' }}>
+                    <div className="font-mono" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#09090b', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <User size={14} style={{ color: '#71717a' }} />
+                      <span>{apt.client_name}</span>
+                    </div>
+
+                    <a 
+                      href={`tel:${apt.client_phone}`}
+                      className="font-mono"
+                      style={{ fontSize: '0.8125rem', color: '#09090b', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}
+                    >
+                      <Phone size={13} style={{ color: '#16a34a' }} />
+                      <span>{apt.client_phone}</span>
+                    </a>
+                  </div>
+
+                  {/* Optional Notes */}
+                  {apt.notes && (
+                    <div className="font-mono" style={{ fontSize: '0.6875rem', color: '#3f3f46', marginBottom: '0.65rem', backgroundColor: '#fafafa', padding: '0.35rem 0.5rem', borderLeft: '2px solid #09090b' }}>
+                      Nota: {apt.notes}
+                    </div>
+                  )}
+
+                  {/* Row 3: Action Buttons (Touch Ergonomic) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.35rem' }}>
+                    {/* WhatsApp */}
                     <a
                       href={waUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-solid-black"
-                      style={{ 
-                        padding: '0.55rem 0.95rem', 
-                        fontSize: '0.75rem', 
-                        backgroundColor: '#16a34a', 
-                        borderColor: '#15803d', 
+                      className="font-mono"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        backgroundColor: '#16a34a',
                         color: '#ffffff',
-                        textDecoration: 'none' 
+                        padding: '0.55rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                        border: '1px solid #15803d'
                       }}
                     >
                       <MessageSquare size={14} />
-                      WHATSAPP
+                      <span>WHATSAPP</span>
                     </a>
 
-                    {/* Direct Call Button */}
+                    {/* Llamar */}
                     <a
                       href={`tel:${apt.client_phone}`}
-                      className="btn-outline-brutal"
-                      style={{ padding: '0.55rem 0.95rem', fontSize: '0.75rem', textDecoration: 'none', color: '#09090b' }}
+                      className="font-mono"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        backgroundColor: '#ffffff',
+                        color: '#09090b',
+                        padding: '0.55rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        border: '1px solid #09090b'
+                      }}
                     >
-                      <Phone size={14} />
-                      LLAMAR
+                      <Phone size={13} />
+                      <span>LLAMAR</span>
                     </a>
 
-                    {/* Complete Button */}
+                    {/* Realizada */}
                     {!isCompleted && !isCancelled && (
                       <button
                         type="button"
                         onClick={() => handleUpdateStatus(apt.id, 'completed')}
-                        className="btn-outline-brutal"
-                        style={{ padding: '0.55rem 0.95rem', fontSize: '0.75rem', color: '#16a34a', borderColor: '#16a34a', marginLeft: 'auto' }}
+                        className="font-mono"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.35rem',
+                          backgroundColor: '#ffffff',
+                          color: '#15803d',
+                          padding: '0.55rem 0.65rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: '1px solid #15803d'
+                        }}
                       >
-                        <CheckCircle2 size={14} />
-                        MARCAR COMO REALIZADA
+                        <CheckCircle2 size={13} />
+                        <span>LISTA</span>
                       </button>
                     )}
 
-                    {/* Reopen / Reset Button */}
-                    {isCompleted && (
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus(apt.id, 'confirmed')}
-                        className="btn-outline-brutal"
-                        style={{ padding: '0.55rem 0.95rem', fontSize: '0.75rem', marginLeft: 'auto' }}
-                      >
-                        VOLVER A PENDIENTE
-                      </button>
-                    )}
-
-                    {/* Cancel Button */}
+                    {/* Cancelar */}
                     {!isCancelled && (
                       <button
                         type="button"
                         onClick={() => {
-                          if (window.confirm(`¿Seguro que deseas cancelar la cita de ${apt.client_name} a las ${apt.appointment_time}?`)) {
+                          if (window.confirm(`¿Seguro que deseas cancelar la cita de ${apt.client_name}?`)) {
                             handleUpdateStatus(apt.id, 'cancelled');
                           }
                         }}
-                        className="btn-outline-brutal"
-                        style={{ padding: '0.55rem 0.75rem', fontSize: '0.75rem', color: '#dc2626', borderColor: '#fca5a5' }}
-                        title="Cancelar cita"
+                        className="font-mono"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.35rem',
+                          backgroundColor: '#ffffff',
+                          color: '#dc2626',
+                          padding: '0.55rem 0.65rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: '1px solid #f87171'
+                        }}
                       >
-                        <XCircle size={14} />
+                        <XCircle size={13} />
+                        <span>CANCELAR</span>
                       </button>
                     )}
                   </div>
@@ -760,7 +766,6 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
         )}
 
       </main>
-
     </div>
   );
 }
