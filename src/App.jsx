@@ -16,13 +16,35 @@ import BarberAppointmentsPage from './components/BarberAppointmentsPage';
 import { DEFAULT_SERVICES } from './data/servicesData';
 import { DEFAULT_PRODUCTS } from './data/productsData';
 import { fetchServices, fetchProducts, addProduct, updateProduct, deleteProduct } from './lib/supabase';
+import { Sparkles } from 'lucide-react';
 import './App.css';
+import './styles/minimalist.css';
 
 const LEGAL_ROUTES = ['aviso-legal', 'politica-privacidad', 'politica-cookies', 'terminos-condiciones'];
 
 export default function App() {
   const [services, setServices] = useState(DEFAULT_SERVICES);
   const [products, setProducts] = useState(DEFAULT_PRODUCTS);
+  
+  // Theme state: allows previewing Emil Kowalski / Taste minimalist design vs original brutalist
+  const [isMinimalist, setIsMinimalist] = useState(() => {
+    try {
+      const stored = localStorage.getItem('joao_theme_minimalist');
+      return stored !== null ? stored === 'true' : true; // default to minimalist as requested
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleTheme = () => {
+    setIsMinimalist((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('joao_theme_minimalist', String(next));
+      } catch {}
+      return next;
+    });
+  };
   
   // Routing: home, admin, citas, or legal pages
   const [currentRoute, setCurrentRoute] = useState(() => {
@@ -156,7 +178,7 @@ export default function App() {
   // 1. IF USER IS ON /ADMIN, RENDER DEDICATED ADMIN PORTAL
   if (currentRoute.type === 'admin') {
     return (
-      <div className="app-wrapper">
+      <div className={`app-wrapper ${isMinimalist ? 'theme-minimalist' : ''}`}>
         <AdminPage
           products={products}
           onAddProduct={handleAddProduct}
@@ -173,7 +195,7 @@ export default function App() {
   // 2. IF USER IS ON /CITAS, RENDER DEDICATED BARBER APPOINTMENTS AGENDA
   if (currentRoute.type === 'citas') {
     return (
-      <div className="app-wrapper">
+      <div className={`app-wrapper ${isMinimalist ? 'theme-minimalist' : ''}`}>
         <BarberAppointmentsPage
           onNavigateHome={navigateToHome}
           onNavigateToAdmin={navigateToAdmin}
@@ -186,7 +208,7 @@ export default function App() {
   // 3. IF USER IS ON A LEGAL ROUTE (/aviso-legal, /politica-privacidad, etc.)
   if (currentRoute.type === 'legal') {
     return (
-      <div className="app-wrapper">
+      <div className={`app-wrapper ${isMinimalist ? 'theme-minimalist' : ''}`}>
         <LegalPage
           currentSlug={currentRoute.slug}
           onNavigateLegal={navigateToLegal}
@@ -199,7 +221,7 @@ export default function App() {
 
   // 4. PUBLIC BARBERSHOP WEBSITE
   return (
-    <div className="app-wrapper">
+    <div className={`app-wrapper ${isMinimalist ? 'theme-minimalist' : ''}`}>
       {/* Navigation Header */}
       <Navbar 
         onOpenBooking={handleOpenBooking} 
@@ -238,6 +260,18 @@ export default function App() {
         onOpenBooking={handleOpenBooking} 
         onNavigateToLegal={navigateToLegal}
       />
+
+      {/* Selector Temporal de Estilo (Emil Kowalski / Taste Minimalista vs Brutalista Original) */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="theme-switcher-pill"
+        title="Cambiar entre diseño Minimalista (Emil Kowalski) y diseño Original"
+      >
+        <Sparkles size={13} style={{ color: isMinimalist ? '#a7f3d0' : '#facc15' }} />
+        <span>{isMinimalist ? 'ESTILO: MINIMALISTA' : 'ESTILO: ORIGINAL'}</span>
+        <span style={{ fontSize: '0.625rem', opacity: 0.7, marginLeft: '0.2rem' }}>[CAMBIAR]</span>
+      </button>
 
       {/* Interactive Booking Modal */}
       <BookingModal
