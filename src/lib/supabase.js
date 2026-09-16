@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Load environment variables from Vite
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Configuración Oficial de Supabase para João Peluquero's
+export const DEFAULT_SUPABASE_URL = 'https://whfatmjogohwgiipzaup.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoZmF0bWpvZ29od2dpaXB6YXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDE2NTAsImV4cCI6MjEwNTA3NzY1MH0.QeINJ9jVqlm_qWf3SFTgu_fMKM8cunv3BRdf6a0bM8o';
 
-// Validate whether credentials are real Supabase URLs
+// Cargar variables de Vite con respaldo oficial
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+// Validar credenciales
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
   supabaseAnonKey &&
@@ -12,7 +16,7 @@ export const isSupabaseConfigured = Boolean(
   !supabaseUrl.includes('tu-proyecto')
 );
 
-// Create Supabase client if configured, otherwise fallback gracefully
+// Cliente Supabase siempre activo en todos los dispositivos
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
@@ -380,13 +384,16 @@ export async function fetchProducts(fallbackProducts) {
  * Add a new product (Admin action)
  */
 export async function addProduct(productPayload, currentProducts = []) {
+  const priceEur = parseFloat(productPayload.price_eur) || 0;
+  const priceLabel = `${priceEur.toFixed(2).replace('.', ',')} €`;
+
   if (!isSupabaseConfigured || !supabase) {
     const newId = 'prod-' + Date.now();
     const newProduct = {
       id: newId,
       ...productPayload,
-      price_eur: parseFloat(productPayload.price_eur) || 0,
-      price_label: `${(parseFloat(productPayload.price_eur) || 0).toFixed(2).replace('.', ',')} €`,
+      price_eur: priceEur,
+      price_label: priceLabel,
       is_active: true,
       created_at: new Date().toISOString()
     };
@@ -400,29 +407,40 @@ export async function addProduct(productPayload, currentProducts = []) {
   }
 
   try {
+    const cleanPayload = {
+      name: productPayload.name,
+      brand: productPayload.brand || 'Joao Lab',
+      category: productPayload.category || 'peluqueria',
+      description: productPayload.description || '',
+      price_eur: priceEur,
+      price_label: priceLabel,
+      stock: parseInt(productPayload.stock, 10) || 10,
+      image_url: productPayload.image_url || '',
+      tag: productPayload.tag || (productPayload.category === 'perfumes' ? 'PERFUMERÍA' : 'PELUQUERÍA'),
+      is_active: true
+    };
+
     const { data, error } = await supabase
       .from('products')
-      .insert([
-        {
-          name: productPayload.name,
-          brand: productPayload.brand || '',
-          category: productPayload.category || 'peluqueria',
-          description: productPayload.description || '',
-          price_eur: parseFloat(productPayload.price_eur) || 0,
-          price_label: `${(parseFloat(productPayload.price_eur) || 0).toFixed(2).replace('.', ',')} €`,
-          stock: parseInt(productPayload.stock, 10) || 10,
-          image_url: productPayload.image_url || '',
-          is_active: true
-        }
-      ])
-      .select()
-      .single();
+      .insert([cleanPayload])
+      .select();
 
     if (error) throw error;
-    return { data, error: null, source: 'supabase' };
+    const createdItem = (data && data.length > 0) ? data[0] : { id: 'prod-' + Date.now(), ...cleanPayload };
+
+    try {
+      localStorage.setItem('joao_products', JSON.stringify([createdItem, ...currentProducts]));
+    } catch {}
+
+    return { data: createdItem, error: null, source: 'supabase' };
   } catch (err) {
     console.error('[Supabase Add Product Error]:', err);
-    return { data: null, error: err };
+    const newId = 'prod-' + Date.now();
+    const fallbackItem = { id: newId, ...productPayload, price_eur: priceEur, price_label: priceLabel, is_active: true };
+    try {
+      localStorage.setItem('joao_products', JSON.stringify([fallbackItem, ...currentProducts]));
+    } catch {}
+    return { data: fallbackItem, error: null, source: 'fallback' };
   }
 }
 
@@ -447,6 +465,12 @@ export async function deleteProduct(productId, currentProducts = []) {
       .eq('id', productId);
 
     if (error) throw error;
+
+    try {
+      const updated = currentProducts.filter((p) => p.id !== productId);
+      localStorage.setItem('joao_products', JSON.stringify(updated));
+    } catch {}
+
     return { success: true, error: null };
   } catch (err) {
     console.error('[Supabase Delete Product Error]:', err);
@@ -485,25 +509,41 @@ export async function updateProduct(productId, productPayload, currentProducts =
   }
 
   try {
+    const cleanPayload = {
+      name: productPayload.name,
+      brand: productPayload.brand || 'Joao Lab',
+      category: productPayload.category,
+      description: productPayload.description || '',
+      price_eur: priceEur,
+      price_label: priceLabel,
+      stock: parseInt(productPayload.stock, 10) || 10,
+      image_url: productPayload.image_url || '',
+      tag: productPayload.tag || (productPayload.category === 'perfumes' ? 'PERFUMERÍA' : 'PELUQUERÍA')
+    };
+
     const { data, error } = await supabase
       .from('products')
-      .update({
-        name: productPayload.name,
-        category: productPayload.category,
-        description: productPayload.description,
-        price_eur: priceEur,
-        price_label: priceLabel,
-        image_url: productPayload.image_url,
-      })
+      .update(cleanPayload)
       .eq('id', productId)
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return { data, error: null, source: 'supabase' };
+    const updatedItem = (data && data.length > 0) ? data[0] : { id: productId, ...cleanPayload };
+
+    try {
+      const local = currentProducts.map((p) => p.id === productId ? updatedItem : p);
+      localStorage.setItem('joao_products', JSON.stringify(local));
+    } catch {}
+
+    return { data: updatedItem, error: null, source: 'supabase' };
   } catch (err) {
     console.error('[Supabase Update Product Error]:', err);
-    return { data: null, error: err };
+    const fallbackItem = { id: productId, ...productPayload, price_eur: priceEur, price_label: priceLabel };
+    try {
+      const local = currentProducts.map((p) => p.id === productId ? fallbackItem : p);
+      localStorage.setItem('joao_products', JSON.stringify(local));
+    } catch {}
+    return { data: fallbackItem, error: null, source: 'fallback' };
   }
 }
 
@@ -626,4 +666,55 @@ export async function updateReservationStatus(reservationId, newStatus) {
     return { success: false, error: err };
   }
 }
+
+/**
+ * Admin PIN management: retrieves shared PIN from Supabase with fallback to local
+ */
+export async function fetchAdminPin() {
+  if (!isSupabaseConfigured || !supabase) {
+    return localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
+  }
+  try {
+    const { data, error } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'admin_pin')
+      .maybeSingle();
+
+    if (!error && data && data.value) {
+      localStorage.setItem('joao_admin_pin_custom', data.value.trim());
+      return data.value.trim();
+    }
+  } catch (err) {
+    console.warn('[Supabase Admin PIN Notice]:', err.message);
+  }
+  return localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
+}
+
+export async function updateAdminPin(newPin) {
+  const cleanPin = (newPin || '').trim();
+  if (!cleanPin) return { success: false, error: 'PIN vacío' };
+
+  // 1. Guardar localmente siempre
+  try {
+    localStorage.setItem('joao_admin_pin_custom', cleanPin);
+    localStorage.setItem('joao_admin_pin', cleanPin);
+  } catch {}
+
+  // 2. Sincronizar en Supabase para todos los dispositivos
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({ key: 'admin_pin', value: cleanPin, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.warn('[Supabase Update PIN Error]:', err.message);
+      return { success: true, warning: 'Guardado localmente. Para sincronizarlo entre varios dispositivos, ejecuta la sección 15 del script SQL en Supabase.' };
+    }
+  }
+  return { success: true };
+}
+
 

@@ -9,7 +9,9 @@ import {
   fetchProductReservations, 
   updateReservationStatus, 
   fetchAdminAppointments, 
-  updateAppointmentStatus 
+  updateAppointmentStatus,
+  fetchAdminPin,
+  updateAdminPin
 } from '../lib/supabase';
 import { 
   getTelegramConfig, 
@@ -148,7 +150,12 @@ export default function AdminPage({
     e.preventDefault();
     if (isLockedOut) return;
 
-    const correctPin = (localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234').trim();
+    let serverPin = null;
+    try {
+      serverPin = await fetchAdminPin();
+    } catch {}
+
+    const correctPin = (serverPin || localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234').trim();
     if (pinInput.trim() === correctPin) {
       setIsAdminLoggedIn(true);
       setAuthError(false);
@@ -225,7 +232,36 @@ export default function AdminPage({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setImageUrl(event.target.result);
+      const rawDataUrl = event.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 900;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Comprime a JPEG de alta fidelidad con peso ultraligero (~60-90 KB)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setImageUrl(compressedDataUrl);
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -326,35 +362,34 @@ export default function AdminPage({
     );
   };
 
-  const handleSaveTelegram = (e) => {
-    e?.preventDefault();
-    saveTelegramConfig(telegramTokenInput, telegramChatIdInput);
-    setTelegramTestStatus({ type: 'success', message: '¡Configuración de Telegram guardada correctamente!' });
-  };
-
   const handleTestTelegram = async () => {
     setIsTestingTelegram(true);
     setTelegramTestStatus(null);
-    saveTelegramConfig(telegramTokenInput, telegramChatIdInput);
-    const result = await testTelegramNotification(telegramTokenInput, telegramChatIdInput);
+    const result = await testTelegramNotification();
     setIsTestingTelegram(false);
     if (result.success) {
-      setTelegramTestStatus({ type: 'success', message: '¡Mensaje de prueba enviado con éxito a tu Telegram! Revisa tu chat.' });
+      setTelegramTestStatus({ type: 'success', message: '¡Mensaje de prueba enviado con éxito a tu Telegram! Revisa tu móvil.' });
     } else {
       setTelegramTestStatus({ type: 'error', message: `Error al conectar con Telegram: ${result.error}` });
     }
   };
 
-  const handleChangePin = (e) => {
+  const handleChangePin = async (e) => {
     e.preventDefault();
     if (!customPinInput.trim() || customPinInput.trim().length < 4) {
-      setPinChangeStatus({ type: 'error', message: 'El nuevo PIN debe tener al menos 4 caracteres.' });
+      setPinChangeStatus({ type: 'error', message: 'La nueva contraseña debe tener al menos 4 caracteres.' });
       return;
     }
-    localStorage.setItem('joao_admin_pin_custom', customPinInput.trim());
-    localStorage.setItem('joao_admin_pin', customPinInput.trim());
+    const result = await updateAdminPin(customPinInput.trim());
     setCustomPinInput('');
-    setPinChangeStatus({ type: 'success', message: '¡PIN de administrador actualizado correctamente!' });
+    if (result.success) {
+      setPinChangeStatus({ 
+        type: 'success', 
+        message: result.warning || '¡Contraseña de administrador actualizada correctamente en todos los dispositivos!' 
+      });
+    } else {
+      setPinChangeStatus({ type: 'error', message: result.error || 'Error al actualizar la contraseña.' });
+    }
   };
 
   const filteredAppointments = React.useMemo(() => {
@@ -652,7 +687,7 @@ export default function AdminPage({
                 }}
               >
                 <Settings size={15} />
-                CONFIGURACIÓN & TELEGRAM
+                AJUSTES & CONTRASEÑA
               </button>
             </div>
 
@@ -1376,53 +1411,53 @@ export default function AdminPage({
             {/* TAB: SETTINGS & TELEGRAM NOTIFICATIONS */}
             {activeTab === 'settings' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Telegram Bot Card */}
+                {/* Telegram Bot Established Card */}
                 <div style={{ backgroundColor: '#ffffff', border: '1px solid #09090b', padding: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                         <Send size={22} style={{ color: '#09090b' }} />
                         <h2 className="font-headline" style={{ fontSize: '1.65rem', color: '#09090b' }}>
-                          NOTIFICACIONES AUTOMÁTICAS VÍA TELEGRAM
+                          NOTIFICACIONES TELEGRAM (ESTABLECIDO)
                         </h2>
                       </div>
                       <p className="font-mono" style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
-                        Recibe un aviso inmediato y 100% gratuito en tu móvil cada vez que un cliente pida una cita o reserve un producto.
+                        El bot oficial de la barbería está permanentemente activo y vinculado a tu móvil.
                       </p>
                     </div>
 
-                    <div className="tech-badge" style={{ backgroundColor: telegramTokenInput && telegramChatIdInput ? '#16a34a' : '#d97706', color: '#ffffff' }}>
-                      {telegramTokenInput && telegramChatIdInput ? '✓ CONFIGURADO' : '⚠ PENDIENTE'}
+                    <div className="tech-badge" style={{ backgroundColor: '#16a34a', color: '#ffffff' }}>
+                      ✓ BOT ESTABLECIDO Y ACTIVO
                     </div>
                   </div>
 
-                  {/* Step-by-step guide */}
+                  {/* Established Bot Details */}
                   <div 
                     style={{ 
                       backgroundColor: '#fafafa', 
                       border: '1px solid #e4e4e7', 
                       padding: '1.25rem', 
-                      marginBottom: '1.75rem' 
+                      marginBottom: '1.5rem' 
                     }}
                     className="font-mono"
                   >
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#09090b', marginBottom: '0.65rem' }}>
-                      CÓMO OBTENER TU BOT TOKEN Y TU CHAT ID (2 MINUTOS):
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.8125rem' }}>
+                      <div>
+                        <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>BOT OFICIAL:</span>
+                        <strong style={{ color: '#09090b' }}>@JoaoPeluquero_bot</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>CHAT ID DESTINATARIO:</span>
+                        <strong style={{ color: '#09090b' }}>6240635170 (Móvil de João)</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>ESTADO DEL SERVICIO:</span>
+                        <strong style={{ color: '#16a34a' }}>● Notificaciones 24/7 en tiempo real</strong>
+                      </div>
                     </div>
-                    <ol style={{ fontSize: '0.75rem', color: '#3f3f46', paddingLeft: '1.25rem', lineHeight: 1.6 }}>
-                      <li>
-                        Abre <strong>Telegram</strong> en tu móvil o PC y busca <strong>@BotFather</strong>.
-                      </li>
-                      <li>
-                        Envía <code>/newbot</code>, elige un nombre (ej. <em>Joao Peluquero Bot</em>) y un usuario acabado en bot. BotFather te dará un <strong>HTTP API Token</strong> (cópialo y pégalo abajo).
-                      </li>
-                      <li>
-                        Busca en Telegram el bot <strong>@userinfobot</strong>, dale a <strong>Iniciar / Start</strong> y copia el número que sale en <strong>Id</strong> (tu Chat ID).
-                      </li>
-                      <li>
-                        <strong>¡MUY IMPORTANTE!</strong> Abre tu nuevo bot en Telegram y dale a <strong>Iniciar / Start</strong> para que el bot tenga permiso de enviarte mensajes.
-                      </li>
-                    </ol>
+                    <p style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '1rem', borderTop: '1px solid #e4e4e7', paddingTop: '0.75rem', lineHeight: 1.5 }}>
+                      No necesitas configurar nada más. Cada vez que cualquier persona agende una cita o reserve un perfume/producto desde su teléfono o PC, recibirás un mensaje inmediato con los datos del cliente.
+                    </p>
                   </div>
 
                   {/* Telegram Status feedback banner */}
@@ -1449,76 +1484,18 @@ export default function AdminPage({
                     </div>
                   )}
 
-                  <form onSubmit={handleSaveTelegram} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div>
-                      <label className="font-mono" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#09090b', marginBottom: '0.35rem' }}>
-                        TELEGRAM BOT TOKEN *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej: 7123456789:AAFlkB4..."
-                        value={telegramTokenInput}
-                        onChange={(e) => setTelegramTokenInput(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem 1rem',
-                          border: '1px solid #09090b',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.875rem',
-                          outline: 'none',
-                          borderRadius: 0
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-mono" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#09090b', marginBottom: '0.35rem' }}>
-                        TU CHAT ID DE TELEGRAM *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej: 123456789"
-                        value={telegramChatIdInput}
-                        onChange={(e) => setTelegramChatIdInput(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem 1rem',
-                          border: '1px solid #09090b',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.875rem',
-                          outline: 'none',
-                          borderRadius: 0
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                      <button
-                        type="submit"
-                        className="btn-solid-black"
-                        style={{ padding: '0.85rem 1.5rem', fontSize: '0.8125rem' }}
-                      >
-                        GUARDAR CONFIGURACIÓN TELEGRAM
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleTestTelegram}
-                        disabled={isTestingTelegram || !telegramTokenInput.trim() || !telegramChatIdInput.trim()}
-                        className="btn-outline-brutal"
-                        style={{ 
-                          padding: '0.85rem 1.5rem', 
-                          fontSize: '0.8125rem',
-                          opacity: (!telegramTokenInput.trim() || !telegramChatIdInput.trim()) ? 0.5 : 1 
-                        }}
-                      >
-                        <Send size={15} />
-                        {isTestingTelegram ? 'ENVIANDO PRUEBA...' : 'ENVIAR MENSAJE DE PRUEBA AHORA'}
-                      </button>
-                    </div>
-                  </form>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleTestTelegram}
+                      disabled={isTestingTelegram}
+                      className="btn-solid-black"
+                      style={{ padding: '0.85rem 1.5rem', fontSize: '0.8125rem' }}
+                    >
+                      <Send size={15} />
+                      {isTestingTelegram ? 'ENVIANDO MENSAJE...' : 'ENVIAR MENSAJE DE PRUEBA A MI TELEGRAM'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* PIN Management Card */}

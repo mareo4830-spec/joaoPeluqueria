@@ -10,13 +10,23 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+// Configuración Oficial Pre-establecida de Telegram para João Peluquero's
+export const ESTABLISHED_TELEGRAM_BOT_TOKEN = '8838818260:AAGfqXFGAi5QALVOxQN91PeEK8YeNWzKV8Q';
+export const ESTABLISHED_TELEGRAM_CHAT_ID = '6240635170';
+export const ESTABLISHED_TELEGRAM_BOT_NAME = '@JoaoPeluquero_bot';
+
 export function getTelegramConfig() {
-  const token = (typeof window !== 'undefined' ? localStorage.getItem('joao_telegram_token') : null) || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '';
-  const chatId = (typeof window !== 'undefined' ? localStorage.getItem('joao_telegram_chat_id') : null) || import.meta.env.VITE_TELEGRAM_CHAT_ID || '';
+  const token = (typeof window !== 'undefined' ? localStorage.getItem('joao_telegram_token') : null) 
+    || import.meta.env.VITE_TELEGRAM_BOT_TOKEN 
+    || ESTABLISHED_TELEGRAM_BOT_TOKEN;
+  const chatId = (typeof window !== 'undefined' ? localStorage.getItem('joao_telegram_chat_id') : null) 
+    || import.meta.env.VITE_TELEGRAM_CHAT_ID 
+    || ESTABLISHED_TELEGRAM_CHAT_ID;
   return { 
-    token: token.trim(), 
-    chatId: chatId.trim(), 
-    isConfigured: Boolean(token.trim() && chatId.trim()) 
+    token: (token || '').trim(), 
+    chatId: (chatId || '').trim(), 
+    isConfigured: Boolean((token || '').trim() && (chatId || '').trim()),
+    botName: ESTABLISHED_TELEGRAM_BOT_NAME
   };
 }
 

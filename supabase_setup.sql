@@ -161,12 +161,16 @@ CREATE POLICY "Permitir lectura publica de servicios activos"
 
 -- 10. Políticas RLS para 'products'
 -- Lectura pública para cualquier visitante
+DROP POLICY IF EXISTS "Permitir lectura publica de productos" ON public.products;
 CREATE POLICY "Permitir lectura publica de productos"
     ON public.products FOR SELECT TO public, anon USING (is_active = true);
 
--- Inserción y gestión de productos desde el panel de administración
-CREATE POLICY "Permitir administracion de productos a autenticados"
-    ON public.products FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Inserción, edición y gestión de productos desde el panel de administración
+DROP POLICY IF EXISTS "Permitir administracion de productos a autenticados" ON public.products;
+DROP POLICY IF EXISTS "Permitir administracion de productos a anon y autenticados" ON public.products;
+CREATE POLICY "Permitir administracion de productos a anon y autenticados"
+    ON public.products FOR ALL TO public, anon, authenticated
+    USING (true) WITH CHECK (true);
 
 -- 11. Políticas RLS para 'appointments' (Blindaje de Privacidad RGPD)
 -- Creación anónima de reservas (cualquier visitante puede solicitar cita)
@@ -254,6 +258,26 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_update_appointment_status(UUID, VARCHAR, TEXT) TO anon, authenticated;
+
+-- ==============================================================================
+-- 15. TABLA DE AJUSTES GLOBALES (PIN DE ACCESO SINCRONIZADO EN TODOS LOS DISPOSITIVOS)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.admin_settings (
+    key VARCHAR(64) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir lectura y gestion de admin_settings" ON public.admin_settings;
+CREATE POLICY "Permitir lectura y gestion de admin_settings"
+    ON public.admin_settings FOR ALL TO public, anon, authenticated
+    USING (true) WITH CHECK (true);
+
+INSERT INTO public.admin_settings (key, value)
+VALUES ('admin_pin', 'admin1234')
+ON CONFLICT (key) DO NOTHING;
 
 -- ==============================================================================
 -- FIN DEL SCRIPT. Base de datos completa, blindada y lista para producción.
