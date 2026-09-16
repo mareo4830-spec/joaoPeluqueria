@@ -1,7 +1,32 @@
-import React from 'react';
-import { Scissors, Calendar, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Scissors, Calendar, Lock, Clock } from 'lucide-react';
 
-export default function Navbar({ onOpenBooking, onNavigateToAdmin }) {
+export default function Navbar({ onOpenBooking, onNavigateToAdmin, onNavigateToCitas }) {
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try {
+      return localStorage.getItem('joao_admin_logged') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Keep admin state synced across tabs or actions
+  useEffect(() => {
+    const checkAdmin = () => {
+      try {
+        setIsAdmin(localStorage.getItem('joao_admin_logged') === 'true');
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+    window.addEventListener('storage', checkAdmin);
+    window.addEventListener('focus', checkAdmin);
+    return () => {
+      window.removeEventListener('storage', checkAdmin);
+      window.removeEventListener('focus', checkAdmin);
+    };
+  }, []);
+
   return (
     <header className="border-b-solid" style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#ffffff' }}>
       {/* Top Utility Ticker */}
@@ -30,11 +55,41 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto', flexShrink: 0 }}>
+          {/* Botón Citas: SOLO VISIBLE SI ESTÁ COMO ADMIN */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={onNavigateToCitas}
+              title="Ver Agenda de Citas del Peluquero (/citas)"
+              aria-label="Ver Citas del Peluquero"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                backgroundColor: '#16a34a',
+                color: '#ffffff',
+                border: '1px solid #22c55e',
+                padding: '0.2rem 0.6rem',
+                fontSize: '0.6875rem',
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                cursor: 'pointer',
+                borderRadius: '2px',
+                lineHeight: 1,
+                boxShadow: '0 1px 4px rgba(34, 197, 94, 0.35)'
+              }}
+            >
+              <Calendar size={11} strokeWidth={2.5} />
+              <span>CITAS</span>
+            </button>
+          )}
+
           <span style={{ color: '#d4d4d8', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }} className="sm-inline">
             CITAS ONLINE 24/7
           </span>
           
-          {/* Botón muy chico en la esquina superior derecha para entrar a /admin */}
+          {/* Botón en la esquina superior derecha para entrar a /admin */}
           <button
             type="button"
             onClick={onNavigateToAdmin}
@@ -125,15 +180,43 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin }) {
             </a>
           </nav>
 
-          {/* CTA */}
-          <button
-            onClick={() => onOpenBooking(null)}
-            className="btn-solid-black"
-            style={{ padding: '0.65rem 1.15rem', fontSize: '0.75rem', flexShrink: 0 }}
-          >
-            <Calendar size={14} />
-            <span>PEDIR CITA</span>
-          </button>
+          {/* CTAs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* Botón Citas: SOLO VISIBLE SI ESTÁ COMO ADMIN */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={onNavigateToCitas}
+                className="font-mono"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  backgroundColor: '#09090b',
+                  color: '#ffffff',
+                  border: '2px solid #09090b',
+                  padding: '0.65rem 1.15rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                <Clock size={15} style={{ color: '#22c55e' }} />
+                <span>CITAS</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => onOpenBooking(null)}
+              className="btn-solid-black"
+              style={{ padding: '0.65rem 1.15rem', fontSize: '0.75rem', flexShrink: 0 }}
+            >
+              <Calendar size={14} />
+              <span>PEDIR CITA</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>

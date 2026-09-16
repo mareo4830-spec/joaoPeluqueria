@@ -24,7 +24,8 @@ export default function AdminPage({
   onAddProduct, 
   onUpdateProduct, 
   onDeleteProduct,
-  onNavigateHome 
+  onNavigateHome,
+  onNavigateToCitas
 }) {
   const [pinInput, setPinInput] = useState('');
   const [authError, setAuthError] = useState(false);
@@ -429,7 +430,34 @@ export default function AdminPage({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isAdminLoggedIn && onNavigateToCitas && (
+              <button
+                type="button"
+                onClick={onNavigateToCitas}
+                title="Abrir Vista Rápida de Citas para Peluquero (/citas)"
+                className="font-mono"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  backgroundColor: '#16a34a',
+                  color: '#ffffff',
+                  border: '1px solid #22c55e',
+                  padding: '0.5rem 0.85rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  borderRadius: '2px',
+                  boxShadow: '0 1px 4px rgba(34, 197, 94, 0.35)'
+                }}
+              >
+                <CalendarIcon size={14} />
+                <span>CITAS</span>
+              </button>
+            )}
+
             <button
               onClick={onNavigateHome}
               className="btn-outline-brutal"

@@ -12,6 +12,7 @@ import ProductReservationModal from './components/ProductReservationModal';
 import LegalPage from './components/LegalPage';
 import PrivacyBanner from './components/PrivacyBanner';
 import AdminPage from './components/AdminPage';
+import BarberAppointmentsPage from './components/BarberAppointmentsPage';
 import { DEFAULT_SERVICES } from './data/servicesData';
 import { DEFAULT_PRODUCTS } from './data/productsData';
 import { fetchServices, fetchProducts, addProduct, updateProduct, deleteProduct } from './lib/supabase';
@@ -23,13 +24,17 @@ export default function App() {
   const [services, setServices] = useState(DEFAULT_SERVICES);
   const [products, setProducts] = useState(DEFAULT_PRODUCTS);
   
-  // Routing: home, admin, or legal pages
+  // Routing: home, admin, citas, or legal pages
   const [currentRoute, setCurrentRoute] = useState(() => {
     const path = window.location.pathname.toLowerCase().replace(/^\//, '');
     const hash = window.location.hash.toLowerCase().replace(/^#/, '');
 
     if (path === 'admin' || path.startsWith('admin/') || hash === 'admin') {
       return { type: 'admin' };
+    }
+
+    if (path === 'citas' || path.startsWith('citas/') || hash === 'citas') {
+      return { type: 'citas' };
     }
 
     const legalSlug = LEGAL_ROUTES.find(r => path === r || hash === r);
@@ -53,6 +58,8 @@ export default function App() {
 
       if (path === 'admin' || path.startsWith('admin/') || hash === 'admin') {
         setCurrentRoute({ type: 'admin' });
+      } else if (path === 'citas' || path.startsWith('citas/') || hash === 'citas') {
+        setCurrentRoute({ type: 'citas' });
       } else {
         const legalSlug = LEGAL_ROUTES.find(r => path === r || hash === r);
         if (legalSlug) {
@@ -134,6 +141,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const navigateToCitas = () => {
+    window.history.pushState({}, '', '/citas');
+    setCurrentRoute({ type: 'citas' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   const navigateToLegal = (slug) => {
     window.history.pushState({}, '', `/${slug}`);
     setCurrentRoute({ type: 'legal', slug });
@@ -150,13 +163,27 @@ export default function App() {
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}
           onNavigateHome={navigateToHome}
+          onNavigateToCitas={navigateToCitas}
         />
         <PrivacyBanner onNavigateToLegal={navigateToLegal} />
       </div>
     );
   }
 
-  // 2. IF USER IS ON A LEGAL ROUTE (/aviso-legal, /politica-privacidad, etc.)
+  // 2. IF USER IS ON /CITAS, RENDER DEDICATED BARBER APPOINTMENTS AGENDA
+  if (currentRoute.type === 'citas') {
+    return (
+      <div className="app-wrapper">
+        <BarberAppointmentsPage
+          onNavigateHome={navigateToHome}
+          onNavigateToAdmin={navigateToAdmin}
+        />
+        <PrivacyBanner onNavigateToLegal={navigateToLegal} />
+      </div>
+    );
+  }
+
+  // 3. IF USER IS ON A LEGAL ROUTE (/aviso-legal, /politica-privacidad, etc.)
   if (currentRoute.type === 'legal') {
     return (
       <div className="app-wrapper">
@@ -170,13 +197,14 @@ export default function App() {
     );
   }
 
-  // 3. PUBLIC BARBERSHOP WEBSITE (ZERO ADMIN CONTROLS VISIBLE)
+  // 4. PUBLIC BARBERSHOP WEBSITE
   return (
     <div className="app-wrapper">
       {/* Navigation Header */}
       <Navbar 
         onOpenBooking={handleOpenBooking} 
         onNavigateToAdmin={navigateToAdmin}
+        onNavigateToCitas={navigateToCitas}
       />
 
       {/* Main Content Sections */}
