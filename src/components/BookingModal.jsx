@@ -55,6 +55,35 @@ export default function BookingModal({ isOpen, onClose, initialService, services
     { time: '20:15', period: 'Tarde' },
   ], []);
 
+  // Hora actual en vivo (para ocultar de forma estricta turnos pasados si es hoy)
+  const [currentTimeStr, setCurrentTimeStr] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTimeStr(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Turnos visibles: Si la fecha elegida es HOY, NO salen las horas que ya hayan pasado
+  const visibleTimeSlots = useMemo(() => {
+    if (selectedDate !== todayIso) {
+      return allTimeSlots;
+    }
+    return allTimeSlots.filter((slot) => slot.time > currentTimeStr);
+  }, [allTimeSlots, selectedDate, todayIso, currentTimeStr]);
+
+  // Si se había marcado una hora de hoy que ya venció, desmarcarla automáticamente
+  useEffect(() => {
+    if (selectedDate === todayIso && selectedTime && selectedTime <= currentTimeStr) {
+      setSelectedTime('');
+    }
+  }, [selectedDate, todayIso, selectedTime, currentTimeStr]);
+
   // Función para refrescar el cómputo de citas del mes visible
   const refreshMonthBookings = React.useCallback(async (year, month) => {
     setIsLoadingMonth(true);
@@ -116,9 +145,11 @@ export default function BookingModal({ isOpen, onClose, initialService, services
       const isSunday = dayOfWeek === 0;
       const isPast = iso < todayIso;
       const bookedCount = monthBookedCounts[iso] || 0;
-      const isFullyBooked = bookedCount >= allTimeSlots.length;
-      const isDisabled = isSunday || isPast || isFullyBooked;
       const isToday = iso === todayIso;
+      // Si es hoy, comprobar si ya pasaron todos los turnos del día
+      const areAllSlotsPastForToday = isToday && allTimeSlots.every((slot) => slot.time <= currentTimeStr);
+      const isFullyBooked = bookedCount >= allTimeSlots.length || areAllSlotsPastForToday;
+      const isDisabled = isSunday || isPast || isFullyBooked;
       
       days.push({
         type: 'day',
@@ -134,7 +165,7 @@ export default function BookingModal({ isOpen, onClose, initialService, services
     }
     
     return days;
-  }, [calendarViewDate, todayIso, monthBookedCounts, allTimeSlots.length]);
+  }, [calendarViewDate, todayIso, monthBookedCounts, allTimeSlots, currentTimeStr]);
 
   const handlePrevMonth = () => {
     setCalendarViewDate((prev) => {
@@ -704,45 +735,70 @@ export default function BookingModal({ isOpen, onClose, initialService, services
 
               {/* Time Slots Grid */}
               <div>
-                <div className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                <div className="font-mono" style={{ fontSize: '0.6875rem', color: '#71717a', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>2. TURNO DISPONIBLE:</span>
+                  {selectedDate === todayIso && (
+                    <span style={{ fontSize: '0.65rem', color: '#09090b', fontWeight: 600 }}>
+                      HORA ACTUAL: {currentTimeStr}H
+                    </span>
+                  )}
                   {isLoadingSlots && <span style={{ color: '#09090b' }}>ACTUALIZANDO...</span>}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.4rem' }}>
-                  {allTimeSlots.map((slot) => {
-                    const isBooked = bookedSlots.includes(slot.time);
-                    const isSelected = selectedTime === slot.time;
+                {visibleTimeSlots.length === 0 ? (
+                  <div 
+                    style={{ 
+                      padding: '1.25rem 1rem', 
+                      backgroundColor: '#fafafa', 
+                      border: '1px dashed #09090b', 
+                      textAlign: 'center'
+                    }}
+                    className="font-mono"
+                  >
+                    <Clock size={22} style={{ margin: '0 auto 0.4rem', color: '#09090b' }} />
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#09090b', marginBottom: '0.25rem' }}>
+                      NO QUEDAN MÁS TURNOS DISPONIBLES PARA HOY
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#71717a' }}>
+                      Todos los turnos de hoy anteriores a las {currentTimeStr}h ya han finalizado. Por favor selecciona mañana u otra fecha en el calendario.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.4rem' }}>
+                    {visibleTimeSlots.map((slot) => {
+                      const isBooked = bookedSlots.includes(slot.time);
+                      const isSelected = selectedTime === slot.time;
 
-                    return (
-                      <button
-                        type="button"
-                        key={slot.time}
-                        disabled={isBooked}
-                        onClick={() => setSelectedTime(slot.time)}
-                        style={{
-                          border: isSelected ? '2px solid #09090b' : '1px solid #e4e4e7',
-                          backgroundColor: isSelected ? '#09090b' : isBooked ? '#f4f4f5' : '#ffffff',
-                          color: isSelected ? '#ffffff' : isBooked ? '#a1a1aa' : '#09090b',
-                          padding: '0.65rem 0.35rem',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.8125rem',
-                          fontWeight: 700,
-                          cursor: isBooked ? 'not-allowed' : 'pointer',
-                          textDecoration: isBooked ? 'line-through' : 'none',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <span>{slot.time}</span>
-                        <span style={{ fontSize: '0.5625rem', color: isSelected ? '#d4d4d8' : isBooked ? '#a1a1aa' : '#71717a' }}>
-                          {isBooked ? 'OCUPADO' : slot.period}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      return (
+                        <button
+                          type="button"
+                          key={slot.time}
+                          disabled={isBooked}
+                          onClick={() => setSelectedTime(slot.time)}
+                          style={{
+                            border: isSelected ? '2px solid #09090b' : '1px solid #e4e4e7',
+                            backgroundColor: isSelected ? '#09090b' : isBooked ? '#f4f4f5' : '#ffffff',
+                            color: isSelected ? '#ffffff' : isBooked ? '#a1a1aa' : '#09090b',
+                            padding: '0.65rem 0.35rem',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            cursor: isBooked ? 'not-allowed' : 'pointer',
+                            textDecoration: isBooked ? 'line-through' : 'none',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <span>{slot.time}</span>
+                          <span style={{ fontSize: '0.5625rem', color: isSelected ? '#d4d4d8' : isBooked ? '#a1a1aa' : '#71717a' }}>
+                            {isBooked ? 'OCUPADO' : slot.period}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Navigation Action Buttons */}
