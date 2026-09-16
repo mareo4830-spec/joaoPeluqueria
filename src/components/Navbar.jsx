@@ -28,7 +28,7 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin, onNavigateToC
   }, []);
 
   return (
-    <header className="border-b-solid" style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#ffffff', width: '100%' }}>
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', width: '100%', borderBottom: '1px solid #e4e4e7' }}>
       {/* Top Utility Ticker */}
       <div 
         style={{ 
@@ -107,7 +107,8 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin, onNavigateToC
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                borderRadius: '6px'
               }}
             >
               <Scissors size={17} strokeWidth={2.2} />
@@ -124,19 +125,19 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin, onNavigateToC
 
           {/* Desktop Nav Items */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }} className="desktop-nav">
-            <a href="#servicios" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600 }}>
+            <a href="#servicios" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600, transition: 'color 150ms ease' }}>
               [01] SERVICIOS
             </a>
-            <a href="#productos" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600 }}>
+            <a href="#productos" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600, transition: 'color 150ms ease' }}>
               [02] PRODUCTOS
             </a>
-            <a href="#confianza" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600 }}>
+            <a href="#confianza" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600, transition: 'color 150ms ease' }}>
               [03] CONFIANZA
             </a>
-            <a href="#resenas" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600 }}>
+            <a href="#resenas" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600, transition: 'color 150ms ease' }}>
               [04] RESEÑAS
             </a>
-            <a href="#ubicacion" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600 }}>
+            <a href="#ubicacion" className="font-mono" style={{ textDecoration: 'none', color: '#27272a', fontSize: '0.8125rem', fontWeight: 600, transition: 'color 150ms ease' }}>
               [05] UBICACIÓN
             </a>
           </nav>
@@ -163,8 +164,9 @@ export default function Navbar({ onOpenBooking, onNavigateToAdmin, onNavigateToC
                   letterSpacing: '0.04em',
                   cursor: 'pointer',
                   flexShrink: 0,
-                  borderRadius: '2px',
-                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.3)'
+                  borderRadius: '4px',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.25)',
+                  transition: 'transform 150ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease'
                 }}
               >
                 <Clock size={14} style={{ color: '#ffffff' }} />

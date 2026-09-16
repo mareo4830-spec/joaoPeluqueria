@@ -1,6 +1,6 @@
 /* ==========================================================================
-   JOAO PELUQUERO'S — HALLMARK FRAMEWORK DESIGN SYSTEM
-   Anti-template · Brutalist · Minimalist · Streetwear
+   JOAO PELUQUERO'S — TECH BRUTALIST PULIDO
+   High-Contrast · Razor-Sharp 1px Borders · Tactile Micro-Interactions (Emil Kowalski)
    Full Mobile & Desktop Responsive System with Anti-Word-Break Guarantees
    ========================================================================== */
 
@@ -18,8 +18,26 @@
   --border-light: #f4f4f5;
 
   --font-headline: 'Oswald', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Mechanical Precision Radii */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Emil Kowalski fluid motion curves */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Subtle ambient elevation */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.12);
 
   --max-w: 1280px;
 }
@@ -54,13 +72,14 @@ body {
 
 /* Prevención universal de auto-zoom en móviles (iOS Safari / Chrome / Brave) */
 input, select, textarea {
-  font-size: 16px !important; /* Mínimo 16px estricto: evita que iOS haga zoom automático al tocar cualquier campo */
+  font-size: 16px !important;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
+  font-family: var(--font-body);
 }
 
 button, a, .calendar-day-btn {
-  touch-action: manipulation; /* Evita retardo de 300ms y zooms accidentales por doble toque */
+  touch-action: manipulation;
 }
 
 /* Global Anti-Word-Break & Clean Wrapping Standards */
@@ -90,12 +109,12 @@ img, svg, iframe, video {
 }
 
 /* --------------------------------------------------------------------------
-   Brutalist Streetwear Typography
+   Tech Brutalist Typography
    -------------------------------------------------------------------------- */
 .font-headline {
   font-family: var(--font-headline);
   text-transform: uppercase;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
   font-weight: 800;
   line-height: 1;
 }
@@ -107,7 +126,7 @@ img, svg, iframe, video {
   text-transform: uppercase;
   letter-spacing: -0.015em;
   line-height: 0.95;
-  color: #000000;
+  color: #09090b;
   margin-bottom: 1.25rem;
   position: relative;
   word-break: normal;
@@ -164,45 +183,48 @@ img, svg, iframe, video {
 }
 
 /* --------------------------------------------------------------------------
-   Block Buttons & Technical Actions
+   Buttons & Tactile Actions (Emil Kowalski Philosophy)
    -------------------------------------------------------------------------- */
 .btn-solid-black {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  background-color: #000000;
+  background-color: #09090b;
   color: #ffffff;
-  border: 1px solid #000000;
-  padding: 1rem 1.75rem;
+  border: 1px solid #09090b;
+  padding: 0.85rem 1.6rem;
   font-family: var(--font-headline);
   font-weight: 800;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: transform 0.1s ease, background-color 0.15s ease;
+  transition: transform 150ms var(--ease-out), background-color 150ms ease, box-shadow 150ms ease;
   user-select: none;
   white-space: nowrap;
 }
 
 .btn-solid-black:hover {
   background-color: #18181b;
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-solid-black:active {
-  transform: translateY(1px);
+  transform: scale(0.97) translateY(0);
+  box-shadow: none;
 }
 
 .btn-solid-black:disabled {
-  background-color: #d4d4d8;
-  border-color: #d4d4d8;
-  color: #71717a;
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
+  color: #a1a1aa;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .btn-outline-brutal {
@@ -213,27 +235,28 @@ img, svg, iframe, video {
   background-color: transparent;
   color: #09090b;
   border: 1px solid #09090b;
-  padding: 1rem 1.75rem;
+  padding: 0.85rem 1.6rem;
   font-family: var(--font-headline);
   font-weight: 800;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: transform 150ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease;
   user-select: none;
   white-space: nowrap;
 }
 
 .btn-outline-brutal:hover {
-  background-color: #000000;
+  background-color: #09090b;
   color: #ffffff;
+  transform: translateY(-1.5px);
 }
 
 .btn-outline-brutal:active {
-  transform: translateY(1px);
+  transform: scale(0.97) translateY(0);
 }
 
 .hero-actions-container {
@@ -248,25 +271,39 @@ img, svg, iframe, video {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  background-color: #000000;
+  background-color: #09090b;
   color: #ffffff;
-  border: 2px solid #000000;
-  padding: 1.15rem 2.25rem;
+  border: 1px solid #09090b;
+  padding: 1.1rem 2.25rem;
   font-family: var(--font-headline);
   font-weight: 700;
   font-size: 1.0625rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: transform 0.1s ease, background-color 0.15s ease;
+  transition: transform 150ms var(--ease-out), background-color 150ms ease, box-shadow 150ms ease;
   user-select: none;
+}
+
+.hero-btn-primary svg {
+  transition: transform 150ms var(--ease-out);
 }
 
 .hero-btn-primary:hover {
   background-color: #18181b;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hero-btn-primary:hover svg {
+  transform: translateX(3px);
+}
+
+.hero-btn-primary:active {
+  transform: scale(0.97) translateY(0);
+  box-shadow: none;
 }
 
 .hero-btn-secondary {
@@ -274,25 +311,30 @@ img, svg, iframe, video {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  background-color: transparent;
+  background-color: #ffffff;
   color: #09090b;
-  border: 2px solid #09090b;
-  padding: 1.15rem 2rem;
+  border: 1px solid #09090b;
+  padding: 1.1rem 2rem;
   font-family: var(--font-headline);
   font-weight: 700;
   font-size: 1.0625rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: transform 150ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease;
   user-select: none;
 }
 
 .hero-btn-secondary:hover {
-  background-color: #000000;
+  background-color: #09090b;
   color: #ffffff;
+  transform: translateY(-1.5px);
+}
+
+.hero-btn-secondary:active {
+  transform: scale(0.97) translateY(0);
 }
 
 @media (max-width: 640px) {
@@ -303,14 +345,14 @@ img, svg, iframe, video {
 
   .hero-btn-primary, .hero-btn-secondary {
     width: 100%;
-    padding: 1.15rem 1rem;
+    padding: 1.1rem 1rem;
     font-size: 1rem;
     box-sizing: border-box;
   }
 }
 
 /* --------------------------------------------------------------------------
-   Technical Badges
+   Technical Badges & Chips
    -------------------------------------------------------------------------- */
 .tech-badge {
   display: inline-flex;
@@ -325,7 +367,7 @@ img, svg, iframe, video {
   letter-spacing: 0.04em;
   background-color: var(--bg-pure);
   color: var(--text-main);
-  border-radius: 0;
+  border-radius: var(--radius-xs);
   line-height: 1.2;
 }
 
@@ -341,11 +383,12 @@ img, svg, iframe, video {
   font-weight: 500;
   background-color: var(--bg-subtle);
   color: var(--text-sub);
+  border-radius: var(--radius-xs);
   line-height: 1.2;
 }
 
 /* --------------------------------------------------------------------------
-   Borders
+   Borders & Separators
    -------------------------------------------------------------------------- */
 .border-b-solid {
   border-bottom: 1px solid var(--border-solid);
@@ -368,6 +411,9 @@ img, svg, iframe, video {
    -------------------------------------------------------------------------- */
 .services-list-container {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-solid);
 }
 
 .service-item-row {
@@ -375,29 +421,23 @@ img, svg, iframe, video {
   grid-template-columns: minmax(280px, 1fr) 120px 140px 140px;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.75rem 0.75rem;
+  padding: 1.5rem 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 0.15s ease;
+  border-radius: var(--radius-xs);
+  transition: background-color 150ms ease, padding-left 150ms var(--ease-out);
   cursor: pointer;
 }
 
-.service-item-row:first-child {
-  border-top: 1px solid var(--border-solid);
-}
-
-.service-item-row:last-child {
-  border-bottom: 1px solid var(--border-solid);
-}
-
 .service-item-row:hover {
-  background-color: #fafafa;
+  background-color: var(--bg-subtle);
+  padding-left: 1rem;
 }
 
 @media (max-width: 900px) {
   .service-item-row {
     grid-template-columns: 1fr auto auto;
     gap: 1rem;
-    padding: 1.5rem 0.5rem;
+    padding: 1.35rem 0.5rem;
   }
 }
 
@@ -407,7 +447,11 @@ img, svg, iframe, video {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
-    padding: 1.5rem 0.75rem;
+    padding: 1.35rem 0.75rem;
+  }
+
+  .service-item-row:hover {
+    padding-left: 0.75rem;
   }
 
   .service-mobile-top {
@@ -429,117 +473,34 @@ img, svg, iframe, video {
 }
 
 /* --------------------------------------------------------------------------
-   Modal & Dialog System
-   -------------------------------------------------------------------------- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
-  background-color: rgba(9, 9, 11, 0.75);
-  backdrop-filter: grayscale(100%) contrast(120%);
-  -webkit-backdrop-filter: grayscale(100%) contrast(120%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  border: 2px solid #000000;
-  width: 100%;
-  max-width: 680px;
-  max-height: 90vh;
-  max-height: 90dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 0;
-  position: relative;
-  box-shadow: none;
-  margin: auto;
-}
-
-@media (max-width: 640px) {
-  .modal-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-  
-  .modal-content {
-    max-height: 94vh;
-    max-height: 94dvh;
-    border-width: 1px 0 0 0;
-    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 20px));
-  }
-
-  .booking-modal-body {
-    padding: 1rem 0.85rem 2.5rem 0.85rem !important;
-  }
-
-  .booking-ticket-box {
-    padding: 1rem 0.75rem !important;
-  }
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #ffffff;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #18181b;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #000000;
-}
-
-/* --------------------------------------------------------------------------
-   Services Menu List & Rows
-   -------------------------------------------------------------------------- */
-.services-list-container {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid #09090b;
-}
-
-.service-item-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 1.5rem 0;
-  border-bottom: 1px solid #e4e4e7;
-  transition: background-color 0.15s ease;
-}
-
-@media (max-width: 640px) {
-  .service-item-row {
-    grid-template-columns: 1fr;
-    gap: 0.85rem;
-    padding: 1.25rem 0;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Products Catalog Grid (2 columns on mobile)
+   Products Catalog Grid (Responsive 2 cols mobile, 3-4 desktop)
    -------------------------------------------------------------------------- */
 .products-catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+}
+
+.product-card-mobile {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  background-color: #ffffff;
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out), border-color 200ms ease;
+  overflow: hidden;
+}
+
+.product-card-mobile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: #09090b !important;
+}
+
+.product-image-container-mobile img {
+  transition: transform 350ms var(--ease-out);
+}
+
+.product-card-mobile:hover .product-image-container-mobile img {
+  transform: scale(1.04);
 }
 
 @media (max-width: 640px) {
@@ -550,6 +511,7 @@ img, svg, iframe, video {
 
   .product-card-mobile {
     padding: 0.65rem !important;
+    border-radius: var(--radius-md) !important;
   }
 
   .product-image-container-mobile {
@@ -578,6 +540,7 @@ img, svg, iframe, video {
   .product-btn-mobile {
     padding: 0.5rem 0.4rem !important;
     font-size: 0.6875rem !important;
+    border-radius: var(--radius-xs) !important;
   }
 }
 
@@ -587,8 +550,10 @@ img, svg, iframe, video {
 .calendar-full-month {
   width: 100%;
   background-color: #ffffff;
-  border: 1px solid #09090b;
-  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem;
+  box-shadow: var(--shadow-xs);
 }
 
 .calendar-header {
@@ -597,7 +562,7 @@ img, svg, iframe, video {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .calendar-weekdays-grid {
@@ -621,12 +586,12 @@ img, svg, iframe, video {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--border-subtle);
   background-color: #ffffff;
   color: #09090b;
   cursor: pointer;
-  border-radius: 0;
-  transition: all 0.1s ease;
+  border-radius: var(--radius-sm);
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease, color 120ms ease;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
@@ -637,12 +602,18 @@ img, svg, iframe, video {
 .calendar-day-btn:hover:not(:disabled) {
   border-color: #09090b;
   background-color: #f4f4f5;
+  transform: translateY(-1px);
+}
+
+.calendar-day-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .calendar-day-btn.selected {
   background-color: #09090b !important;
   color: #ffffff !important;
   border-color: #09090b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .calendar-day-btn:disabled {
@@ -664,11 +635,22 @@ img, svg, iframe, video {
 .calendar-day-btn.is-today {
   border-color: #09090b;
   font-weight: 900;
+  position: relative;
+}
+
+.calendar-day-btn.is-today::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: currentColor;
 }
 
 @media (max-width: 480px) {
   .calendar-full-month {
-    padding: 0.65rem;
+    padding: 0.75rem;
   }
   
   .calendar-days-grid {
@@ -679,6 +661,111 @@ img, svg, iframe, video {
     min-height: 38px;
     font-size: 0.75rem;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Modal & Dialog System (Refined Glass & Elevation)
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background-color: rgba(9, 9, 11, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-xl);
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  margin: auto;
+  animation: modalFadeScale 200ms var(--ease-out);
+}
+
+@keyframes modalFadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  
+  .modal-content {
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-width: 1px 0 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 20px));
+    animation: modalDrawerSlide 250ms var(--ease-drawer);
+  }
+
+  @keyframes modalDrawerSlide {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .booking-modal-body {
+    padding: 1rem 0.85rem 2.5rem 0.85rem !important;
+  }
+
+  .booking-ticket-box {
+    padding: 1rem 0.75rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
 }
 
 /* ==============================================================================
@@ -733,6 +820,7 @@ img, svg, iframe, video {
   font-size: 0.875rem;
   color: #27272a;
   line-height: 1.6;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .legal-tag {
@@ -743,6 +831,5 @@ img, svg, iframe, video {
   padding: 0.15rem 0.45rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
-

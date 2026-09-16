@@ -31,21 +31,21 @@ export default function ProductsSection({
           </p>
         </div>
 
-        {/* Category Segmented Tabs (Brutalist blocks) */}
+        {/* Category Segmented Tabs (Tech Brutalist Pulido) */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2.5rem' }} className="font-mono">
           <button
             type="button"
             onClick={() => setActiveCategory('all')}
             style={{
-              padding: '0.75rem 1.5rem',
+              padding: '0.65rem 1.35rem',
               fontSize: '0.8125rem',
               fontWeight: 700,
               cursor: 'pointer',
               border: '1px solid #09090b',
               backgroundColor: activeCategory === 'all' ? '#09090b' : '#ffffff',
               color: activeCategory === 'all' ? '#ffffff' : '#09090b',
-              borderRadius: 0,
-              transition: 'all 0.15s ease'
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             TODOS ({products.length})
@@ -55,15 +55,15 @@ export default function ProductsSection({
             type="button"
             onClick={() => setActiveCategory('perfumes')}
             style={{
-              padding: '0.75rem 1.5rem',
+              padding: '0.65rem 1.35rem',
               fontSize: '0.8125rem',
               fontWeight: 700,
               cursor: 'pointer',
               border: '1px solid #09090b',
               backgroundColor: activeCategory === 'perfumes' ? '#09090b' : '#ffffff',
               color: activeCategory === 'perfumes' ? '#ffffff' : '#09090b',
-              borderRadius: 0,
-              transition: 'all 0.15s ease'
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             PERFUMES ({products.filter(p => p.category === 'perfumes').length})
@@ -73,15 +73,15 @@ export default function ProductsSection({
             type="button"
             onClick={() => setActiveCategory('peluqueria')}
             style={{
-              padding: '0.75rem 1.5rem',
+              padding: '0.65rem 1.35rem',
               fontSize: '0.8125rem',
               fontWeight: 700,
               cursor: 'pointer',
               border: '1px solid #09090b',
               backgroundColor: activeCategory === 'peluqueria' ? '#09090b' : '#ffffff',
               color: activeCategory === 'peluqueria' ? '#ffffff' : '#09090b',
-              borderRadius: 0,
-              transition: 'all 0.15s ease'
+              borderRadius: '4px',
+              transition: 'all 0.15s cubic-bezier(0.23, 1, 0.32, 1)'
             }}
           >
             PRODUCTOS DE PELUQUERÍA ({products.filter(p => p.category === 'peluqueria').length})

@@ -65,7 +65,7 @@ export default function Hero({ onOpenBooking }) {
             </h1>
 
             {/* Brutalist Accent Bar */}
-            <div style={{ width: '70px', height: '5px', backgroundColor: '#000000', marginBottom: '1.75rem' }}></div>
+            <div style={{ width: '48px', height: '3px', backgroundColor: '#09090b', borderRadius: '2px', marginBottom: '1.75rem' }}></div>
 
             {/* Address with Icon & Link */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '2.25rem' }}>
@@ -123,13 +123,15 @@ export default function Hero({ onOpenBooking }) {
           {/* Right Column: Editorial Technical Data Block */}
           <div 
             style={{ 
-              border: '2px solid #09090b', 
+              border: '1px solid #e4e4e7', 
+              borderRadius: '8px',
               padding: 'clamp(1.5rem, 4vw, 2.25rem)', 
               backgroundColor: '#fafafa',
-              width: '100%'
+              width: '100%',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.02)'
             }}
           >
-            <div className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#09090b', borderBottom: '1px solid #09090b', paddingBottom: '0.75rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between' }}>
+            <div className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#09090b', borderBottom: '1px solid #e4e4e7', paddingBottom: '0.75rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between' }}>
               <span>DATOS TÉCNICOS DEL ESPACIO</span>
               <span>HUELVA · 21007</span>
             </div>
