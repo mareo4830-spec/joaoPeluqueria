@@ -21,6 +21,18 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+// Generador de UUID v4 compatible con todos los navegadores y entornos
+export function generateSecureUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /**
  * Service fetcher: tries Supabase first, falls back to static menu if unconfigured
  */
@@ -97,13 +109,12 @@ export async function createAppointment(appointmentPayload) {
   }
 
   try {
-    // 1. Verificación previa de disponibilidad activa para evitar colisiones
+    // 1. Verificación previa de disponibilidad activa en la vista segura de turnos
     const { data: existingSlot } = await supabase
-      .from('appointments')
-      .select('id')
+      .from('appointment_slots')
+      .select('appointment_time')
       .eq('appointment_date', appointmentPayload.appointment_date)
       .eq('appointment_time', appointmentPayload.appointment_time)
-      .neq('status', 'cancelled')
       .maybeSingle();
 
     if (existingSlot) {
@@ -113,24 +124,25 @@ export async function createAppointment(appointmentPayload) {
       };
     }
 
-    // 2. Inserción con protección de clave única en PostgreSQL
-    const { data, error } = await supabase
+    const appointmentId = generateSecureUuid();
+    const newAppointment = {
+      id: appointmentId,
+      service_id: appointmentPayload.service_id || null,
+      service_name: appointmentPayload.service_name,
+      service_price: appointmentPayload.service_price,
+      client_name: appointmentPayload.client_name,
+      client_phone: appointmentPayload.client_phone,
+      appointment_date: appointmentPayload.appointment_date,
+      appointment_time: appointmentPayload.appointment_time,
+      notes: appointmentPayload.notes || null,
+      status: 'confirmed'
+    };
+
+    // 2. Inserción en PostgreSQL sin '.select()' para no chocar con las políticas RLS RGPD
+    // (PostgreSQL evalúa la política SELECT si se pide RETURNING, fallando para anon)
+    const { error } = await supabase
       .from('appointments')
-      .insert([
-        {
-          service_id: appointmentPayload.service_id || null,
-          service_name: appointmentPayload.service_name,
-          service_price: appointmentPayload.service_price,
-          client_name: appointmentPayload.client_name,
-          client_phone: appointmentPayload.client_phone,
-          appointment_date: appointmentPayload.appointment_date,
-          appointment_time: appointmentPayload.appointment_time,
-          notes: appointmentPayload.notes || null,
-          status: 'confirmed'
-        }
-      ])
-      .select()
-      .single();
+      .insert([newAppointment]);
 
     if (error) {
       // Código PostgreSQL 23505: unique_violation (dos reservas simultáneas)
@@ -142,7 +154,15 @@ export async function createAppointment(appointmentPayload) {
       }
       throw error;
     }
-    return { data, error: null, isMock: false };
+
+    return { 
+      data: {
+        ...newAppointment,
+        created_at: new Date().toISOString()
+      }, 
+      error: null, 
+      isMock: false 
+    };
   } catch (err) {
     console.error('[Supabase Appointment Error]:', err);
     return { data: null, error: err };
@@ -571,21 +591,21 @@ export async function createProductReservation(reservationPayload) {
   }
 
   try {
-    const { data, error } = await supabase
+    const reservationId = generateSecureUuid();
+    const reservationRecord = {
+      id: reservationId,
+      product_id: reservationPayload.product_id || null,
+      product_name: reservationPayload.product_name,
+      product_price: reservationPayload.product_price,
+      client_name: reservationPayload.client_name,
+      client_phone: reservationPayload.client_phone,
+      notes: reservationPayload.notes || '',
+      status: 'pendiente'
+    };
+
+    const { error } = await supabase
       .from('product_reservations')
-      .insert([
-        {
-          product_id: reservationPayload.product_id || null,
-          product_name: reservationPayload.product_name,
-          product_price: reservationPayload.product_price,
-          client_name: reservationPayload.client_name,
-          client_phone: reservationPayload.client_phone,
-          notes: reservationPayload.notes || '',
-          status: 'pendiente'
-        }
-      ])
-      .select()
-      .single();
+      .insert([reservationRecord]);
 
     if (error) {
       console.warn('[Supabase Reservation Fallback]:', error.message);
@@ -600,7 +620,14 @@ export async function createProductReservation(reservationPayload) {
       return { data: newReservation, error: null, source: 'local' };
     }
 
-    return { data, error: null, source: 'supabase' };
+    return { 
+      data: {
+        ...reservationRecord,
+        created_at: new Date().toISOString()
+      }, 
+      error: null, 
+      source: 'supabase' 
+    };
   } catch (err) {
     console.error('[Supabase Create Reservation Error]:', err);
     return { data: newReservation, error: null, source: 'local' };
