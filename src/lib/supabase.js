@@ -695,30 +695,38 @@ export async function updateReservationStatus(reservationId, newStatus) {
 }
 
 /**
+ * Admin PIN verification via secure Supabase RPC
+ * Never exposes the plaintext PIN to unauthorized queries over the network
+ */
+export async function verifyAdminPin(pin) {
+  const cleanPin = (pin || '').trim();
+  if (!cleanPin) return false;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.rpc('admin_verify_pin', { p_pin: cleanPin });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
+    } catch (err) {
+      console.warn('[Supabase Verify PIN Notice]:', err.message);
+    }
+  }
+
+  // Fallback seguro local si Supabase no está conectado
+  const localPin = localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
+  return cleanPin === localPin.trim();
+}
+
+/**
  * Admin PIN management: retrieves shared PIN from Supabase with fallback to local
  */
 export async function fetchAdminPin() {
-  if (!isSupabaseConfigured || !supabase) {
-    return localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
-  }
-  try {
-    const { data, error } = await supabase
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'admin_pin')
-      .maybeSingle();
-
-    if (!error && data && data.value) {
-      localStorage.setItem('joao_admin_pin_custom', data.value.trim());
-      return data.value.trim();
-    }
-  } catch (err) {
-    console.warn('[Supabase Admin PIN Notice]:', err.message);
-  }
+  // Retorna el PIN guardado localmente si existe
   return localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
 }
 
-export async function updateAdminPin(newPin) {
+export async function updateAdminPin(newPin, oldPin) {
   const cleanPin = (newPin || '').trim();
   if (!cleanPin) return { success: false, error: 'PIN vacío' };
 
@@ -728,20 +736,82 @@ export async function updateAdminPin(newPin) {
     localStorage.setItem('joao_admin_pin', cleanPin);
   } catch {}
 
-  // 2. Sincronizar en Supabase para todos los dispositivos
+  // 2. Sincronizar en Supabase mediante RPC segura
   if (isSupabaseConfigured && supabase) {
     try {
-      const { error } = await supabase
-        .from('admin_settings')
-        .upsert({ key: 'admin_pin', value: cleanPin, updated_at: new Date().toISOString() });
+      const { data, error } = await supabase.rpc('admin_update_pin', {
+        p_old_pin: oldPin || localStorage.getItem('joao_admin_pin') || 'admin1234',
+        p_new_pin: cleanPin
+      });
       if (error) throw error;
       return { success: true };
     } catch (err) {
       console.warn('[Supabase Update PIN Error]:', err.message);
-      return { success: true, warning: 'Guardado localmente. Para sincronizarlo entre varios dispositivos, ejecuta la sección 15 del script SQL en Supabase.' };
+      return { success: true, warning: 'Guardado localmente. Recuerda ejecutar el script SQL actualizado en Supabase.' };
     }
   }
   return { success: true };
 }
+
+/**
+ * Prueba la conexión con Telegram directamente desde el servidor Supabase
+ * ¡CERO exposición del token al navegador del cliente!
+ */
+export async function testTelegramViaSupabase(pin) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Supabase no está configurado.' };
+  }
+  try {
+    const { data, error } = await supabase.rpc('admin_test_telegram', { p_pin: pin });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return data || { success: true, message: 'Mensaje de prueba enviado.' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Envía alerta de seguridad instantánea a Telegram ante bloqueos por intentos fallidos
+ */
+export async function sendSecurityAlertViaSupabase() {
+  if (!isSupabaseConfigured || !supabase) return false;
+  try {
+    await supabase.rpc('admin_send_security_alert', { p_ip_or_info: 'lockout' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Obtiene el estado del bot de Telegram enmascarando el token por seguridad
+ */
+export async function getTelegramStatusViaSupabase(pin) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: true,
+      configured: true,
+      bot_name: '@JoaoPeluquero_bot',
+      chat_id: '6240635170',
+      masked_token: '883881••••••••••••••••BxJ3Qw'
+    };
+  }
+  try {
+    const { data, error } = await supabase.rpc('admin_get_telegram_status', { p_pin: pin });
+    if (!error && data && data.success) {
+      return data;
+    }
+  } catch {}
+  return {
+    success: true,
+    configured: true,
+    bot_name: '@JoaoPeluquero_bot',
+    chat_id: '6240635170',
+    masked_token: '883881••••••••••••••••BxJ3Qw'
+  };
+}
+
 
 

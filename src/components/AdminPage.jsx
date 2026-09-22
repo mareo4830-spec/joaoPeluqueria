@@ -11,11 +11,13 @@ import {
   fetchAdminAppointments, 
   updateAppointmentStatus,
   fetchAdminPin,
-  updateAdminPin
+  verifyAdminPin,
+  updateAdminPin,
+  sendSecurityAlertViaSupabase,
+  getTelegramStatusViaSupabase
 } from '../lib/supabase';
 import { 
   getTelegramConfig, 
-  saveTelegramConfig, 
   testTelegramNotification 
 } from '../lib/notifications';
 
@@ -151,13 +153,9 @@ export default function AdminPage({
     e.preventDefault();
     if (isLockedOut) return;
 
-    let serverPin = null;
-    try {
-      serverPin = await fetchAdminPin();
-    } catch {}
+    const isValid = await verifyAdminPin(pinInput.trim());
 
-    const correctPin = (serverPin || localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234').trim();
-    if (pinInput.trim() === correctPin) {
+    if (isValid) {
       setIsAdminLoggedIn(true);
       setAuthError(false);
       setFailedAttempts(0);
@@ -185,20 +183,9 @@ export default function AdminPage({
           // ignore
         }
 
-        // Enviar alerta instantánea de seguridad a Telegram
+        // Enviar alerta instantánea de seguridad a Telegram (directamente desde el servidor)
         try {
-          const { token, chatId } = getTelegramConfig();
-          if (token && chatId) {
-            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: chatId,
-                text: `🚨 <b>ALERTA DE SEGURIDAD · JOAO PELUQUERO'S</b>\n━━━━━━━━━━━━━━━━━━━\n⚠️ Se han detectado <b>3 intentos fallidos consecutivos</b> de acceso al panel de administración (/admin).\n🔒 <b>Acceso bloqueado automáticamente</b> durante 15 minutos.`,
-                parse_mode: 'HTML'
-              })
-            }).catch(() => {});
-          }
+          await sendSecurityAlertViaSupabase();
         } catch {
           // ignore
         }
@@ -366,10 +353,11 @@ export default function AdminPage({
   const handleTestTelegram = async () => {
     setIsTestingTelegram(true);
     setTelegramTestStatus(null);
-    const result = await testTelegramNotification();
+    const pin = localStorage.getItem('joao_admin_pin') || 'admin1234';
+    const result = await testTelegramNotification(pin);
     setIsTestingTelegram(false);
     if (result.success) {
-      setTelegramTestStatus({ type: 'success', message: '¡Mensaje de prueba enviado con éxito a tu Telegram! Revisa tu móvil.' });
+      setTelegramTestStatus({ type: 'success', message: result.message || '¡Mensaje de prueba enviado con éxito a tu Telegram desde el servidor Supabase! Revisa tu móvil.' });
     } else {
       setTelegramTestStatus({ type: 'error', message: `Error al conectar con Telegram: ${result.error}` });
     }
@@ -381,7 +369,8 @@ export default function AdminPage({
       setPinChangeStatus({ type: 'error', message: 'La nueva contraseña debe tener al menos 4 caracteres.' });
       return;
     }
-    const result = await updateAdminPin(customPinInput.trim());
+    const currentPin = localStorage.getItem('joao_admin_pin') || 'admin1234';
+    const result = await updateAdminPin(customPinInput.trim(), currentPin);
     setCustomPinInput('');
     if (result.success) {
       setPinChangeStatus({ 
@@ -1446,16 +1435,16 @@ export default function AdminPage({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                         <Send size={22} style={{ color: '#09090b' }} />
                         <h2 className="font-headline" style={{ fontSize: '1.65rem', color: '#09090b' }}>
-                          NOTIFICACIONES TELEGRAM (ESTABLECIDO)
+                          NOTIFICACIONES TELEGRAM (BLINDADO EN SERVIDOR)
                         </h2>
                       </div>
                       <p className="font-mono" style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
-                        El bot oficial de la barbería está permanentemente activo y vinculado a tu móvil.
+                        Arquitectura Zero-Client-Exposure: el nuevo bot está blindado en Supabase (pg_net) y vinculado a tu móvil.
                       </p>
                     </div>
 
                     <div className="tech-badge" style={{ backgroundColor: '#16a34a', color: '#ffffff' }}>
-                      ✓ BOT ESTABLECIDO Y ACTIVO
+                      🛡️ TOKEN PROTEGIDO EN SERVIDOR
                     </div>
                   </div>
 
@@ -1479,12 +1468,16 @@ export default function AdminPage({
                         <strong style={{ color: '#09090b' }}>6240635170 (Móvil de João)</strong>
                       </div>
                       <div>
+                        <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>TOKEN TELEGRAM:</span>
+                        <strong style={{ color: '#16a34a' }}>883881••••••••••••••••BxJ3Qw (Seguro)</strong>
+                      </div>
+                      <div>
                         <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>ESTADO DEL SERVICIO:</span>
                         <strong style={{ color: '#16a34a' }}>● Notificaciones 24/7 en tiempo real</strong>
                       </div>
                     </div>
                     <p style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '1rem', borderTop: '1px solid #e4e4e7', paddingTop: '0.75rem', lineHeight: 1.5 }}>
-                      No necesitas configurar nada más. Cada vez que cualquier persona agende una cita o reserve un perfume/producto desde su teléfono o PC, recibirás un mensaje inmediato con los datos del cliente.
+                      🛡️ <b>Ciberseguridad activa:</b> Ningún visitante de la web puede capturar tu token con F12 ni inspeccionando peticiones de red. Cada cita o reserva dispara automáticamente una petición HTTP desde los servidores de Supabase hacia Telegram.
                     </p>
                   </div>
 

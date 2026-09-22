@@ -7,7 +7,8 @@ import {
 import { 
   fetchAdminAppointments, 
   updateAppointmentStatus, 
-  fetchAdminPin 
+  fetchAdminPin,
+  verifyAdminPin
 } from '../lib/supabase';
 
 export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdmin }) {
@@ -141,14 +142,10 @@ export default function BarberAppointmentsPage({ onNavigateHome, onNavigateToAdm
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError(false);
-    let serverPin = null;
-    try {
-      serverPin = await fetchAdminPin();
-    } catch {}
+    
+    const isValid = await verifyAdminPin(pinInput.trim());
 
-    const correctPin = (serverPin || localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234').trim();
-
-    if (pinInput.trim() === correctPin) {
+    if (isValid) {
       setIsAdminLoggedIn(true);
       setAuthError(false);
       try {
