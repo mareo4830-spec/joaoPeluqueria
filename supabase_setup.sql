@@ -1,5 +1,5 @@
 -- ==============================================================================
--- JOAO PELUQUERO'S — SCRIPT COMPLETO DE CONFIGURACIÓN PARA SUPABASE
+-- JOAO PELUQUERO'S — SCRIPT COMPLETO DE CONFIGURACIÓN PARA SUPABASE (BLINDADO)
 -- ==============================================================================
 -- 1. Accede a tu consola de Supabase: https://supabase.com/dashboard
 -- 2. Selecciona tu proyecto y entra en "SQL Editor" -> "New Query"
@@ -9,13 +9,8 @@
 -- 0. Extensiones oficiales necesarias (pg_net para notificaciones automáticas seguras)
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- 1. Limpieza de tablas previas (opcional, en orden de dependencias)
-DROP TABLE IF EXISTS public.appointments CASCADE;
-DROP TABLE IF EXISTS public.products CASCADE;
-DROP TABLE IF EXISTS public.services CASCADE;
-
--- 2. Creación de la tabla 'services' (Catálogo oficial de servicios)
-CREATE TABLE public.services (
+-- 1. Tablas principales (IF NOT EXISTS para no borrar citas ni datos existentes)
+CREATE TABLE IF NOT EXISTS public.services (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     slug VARCHAR(64) UNIQUE NOT NULL,
     name VARCHAR(120) NOT NULL,
@@ -31,8 +26,7 @@ CREATE TABLE public.services (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. Creación de la tabla 'products' (Perfumes & Productos de Peluquería)
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL,
     brand VARCHAR(100) DEFAULT 'Joao Lab',
@@ -47,8 +41,7 @@ CREATE TABLE public.products (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Creación de la tabla 'appointments' (Reservas de clientes)
-CREATE TABLE public.appointments (
+CREATE TABLE IF NOT EXISTS public.appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_id UUID REFERENCES public.services(id) ON DELETE SET NULL,
     service_name VARCHAR(120) NOT NULL,
@@ -62,16 +55,33 @@ CREATE TABLE public.appointments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 5. Índices de aceleración de consultas y blindaje de duplicados
-CREATE INDEX idx_appointments_date ON public.appointments(appointment_date);
-CREATE INDEX idx_appointments_status ON public.appointments(status);
--- Garantiza que NUNCA puedan existir dos citas activas en la misma fecha y hora (salvo si se cancela)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_appointment ON public.appointments(appointment_date, appointment_time) WHERE status != 'cancelled';
-CREATE INDEX idx_services_active ON public.services(is_active);
-CREATE INDEX idx_products_category ON public.products(category);
-CREATE INDEX idx_products_active ON public.products(is_active);
+CREATE TABLE IF NOT EXISTS public.product_reservations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    product_name VARCHAR(150) NOT NULL,
+    product_price VARCHAR(50) NOT NULL,
+    client_name VARCHAR(150) NOT NULL,
+    client_phone VARCHAR(50) NOT NULL,
+    notes TEXT,
+    status VARCHAR(32) DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'entregado', 'cancelado')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
--- 6. Inserción de los Servicios oficiales
+CREATE TABLE IF NOT EXISTS public.admin_settings (
+    key VARCHAR(64) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Índices de aceleración de consultas y blindaje de duplicados
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_appointment ON public.appointments(appointment_date, appointment_time) WHERE status != 'cancelled';
+CREATE INDEX IF NOT EXISTS idx_services_active ON public.services(is_active);
+CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(category);
+CREATE INDEX IF NOT EXISTS idx_products_active ON public.products(is_active);
+
+-- 3. Inserción de Catálogo de Servicios Inicial (si la tabla está vacía)
 INSERT INTO public.services 
     (slug, name, description, duration_min, duration_label, price_eur, price_label, category, tag, display_order)
 VALUES 
@@ -80,9 +90,10 @@ VALUES
     ('corte-premium', 'Corte premium', 'Corte de autor, diseño de barba, tratamiento capilar y facial exprés.', 60, '1h', 25.00, '25,00 €', 'premium', 'FIRMA JOAO', 3),
     ('recorte-de-barba', 'Recorte de barba', 'Rebaje, simetría, perfilado a navaja tradicional y aceites esenciales.', 20, '20min', 8.00, '8,00 €', 'barba', 'EXPRÉS', 4),
     ('mechas', 'Mechas', 'Efectos de luz, reflejos o mechas platinadas urbanas con matización.', 120, '2h', 45.00, '45,00 €', 'color', 'COLOR', 5),
-    ('decoloracion-completa', 'Decoloración completa', 'Aclarado global, fondo blanco o tonos fantasía con protección capilar plex.', 180, '3h', 60.00, '60,00 €', 'color', 'EXTREMO', 6);
+    ('decoloracion-completa', 'Decoloración completa', 'Aclarado global, fondo blanco o tonos fantasía con protección capilar plex.', 180, '3h', 60.00, '60,00 €', 'color', 'EXTREMO', 6)
+ON CONFLICT (slug) DO NOTHING;
 
--- 7. Inserción del Catálogo inicial de Productos (Perfumes & Peluquería)
+-- 4. Inserción de Catálogo de Productos Inicial
 INSERT INTO public.products 
     (name, brand, category, description, price_eur, price_label, stock, image_url, tag)
 VALUES 
@@ -145,38 +156,40 @@ VALUES
         'Aceite Nutritivo Barba & Piel (50ml)', 
         'Joao Lab', 
         'peluqueria', 
-        'Fórmula hidratante con aceite puro de argán, jojoba y esencia de cedro salvaje. Suaviza el vello y calma la piel tras el afeitado.', 
+        'Fijación hidratante con aceite puro de argán, jojoba y esencia de cedro salvaje. Suaviza el vello y calma la piel tras el afeitado.', 
         11.00, 
         '11,00 €', 
         9, 
         'https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=600&q=80', 
         'BARBA'
-    );
+    )
+ON CONFLICT DO NOTHING;
 
--- 8. Configuración de Seguridad Row Level Security (RLS)
+-- 5. Configuración de Seguridad Row Level Security (RLS)
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_reservations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 
--- 9. Políticas RLS para 'services'
+-- 6. Políticas RLS para 'services'
+DROP POLICY IF EXISTS "Permitir lectura publica de servicios activos" ON public.services;
 CREATE POLICY "Permitir lectura publica de servicios activos"
     ON public.services FOR SELECT TO public, anon USING (is_active = true);
 
--- 10. Políticas RLS para 'products'
--- Lectura pública para cualquier visitante
+-- 7. Políticas RLS para 'products'
 DROP POLICY IF EXISTS "Permitir lectura publica de productos" ON public.products;
 CREATE POLICY "Permitir lectura publica de productos"
     ON public.products FOR SELECT TO public, anon USING (is_active = true);
 
--- Inserción, edición y gestión de productos desde el panel de administración
 DROP POLICY IF EXISTS "Permitir administracion de productos a autenticados" ON public.products;
 DROP POLICY IF EXISTS "Permitir administracion de productos a anon y autenticados" ON public.products;
 CREATE POLICY "Permitir administracion de productos a anon y autenticados"
     ON public.products FOR ALL TO public, anon, authenticated
     USING (true) WITH CHECK (true);
 
--- 11. Políticas RLS para 'appointments' (Blindaje de Privacidad RGPD)
--- Creación anónima de reservas (cualquier visitante puede solicitar cita)
+-- 8. Políticas RLS para 'appointments' (Privacidad RGPD)
+DROP POLICY IF EXISTS "Permitir creacion anonima de reservas" ON public.appointments;
 CREATE POLICY "Permitir creacion anonima de reservas"
     ON public.appointments FOR INSERT TO public, anon
     WITH CHECK (
@@ -184,12 +197,11 @@ CREATE POLICY "Permitir creacion anonima de reservas"
         appointment_date IS NOT NULL AND appointment_time IS NOT NULL
     );
 
--- Lectura completa de citas protegida para administración
+DROP POLICY IF EXISTS "Permitir lectura y gestion de citas a autenticados" ON public.appointments;
 CREATE POLICY "Permitir lectura y gestion de citas a autenticados"
     ON public.appointments FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 12. VISTA PÚBLICA SEGURA DE HORARIOS (Sin datos personales de clientes)
--- Permite al selector de reservas consultar qué turnos están ocupados sin filtrar nombres ni teléfonos
+-- 9. VISTA PÚBLICA SEGURA DE HORARIOS
 CREATE OR REPLACE VIEW public.appointment_slots AS
 SELECT appointment_date, appointment_time, status
 FROM public.appointments
@@ -197,55 +209,26 @@ WHERE status != 'cancelled';
 
 GRANT SELECT ON public.appointment_slots TO anon, authenticated;
 
--- 13. TABLA DE RESERVAS DE PRODUCTOS (NOTIFICACIONES Y PEDIDOS)
-CREATE TABLE IF NOT EXISTS public.product_reservations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
-    product_name VARCHAR(150) NOT NULL,
-    product_price VARCHAR(50) NOT NULL,
-    client_name VARCHAR(150) NOT NULL,
-    client_phone VARCHAR(50) NOT NULL,
-    notes TEXT,
-    status VARCHAR(32) DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'entregado', 'cancelado')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.product_reservations ENABLE ROW LEVEL SECURITY;
-
+-- 10. Políticas RLS para 'product_reservations'
 DROP POLICY IF EXISTS "Permitir creacion anonima de reservas de productos" ON public.product_reservations;
 CREATE POLICY "Permitir creacion anonima de reservas de productos"
     ON public.product_reservations FOR INSERT TO public, anon
     WITH CHECK (client_name IS NOT NULL AND client_phone IS NOT NULL);
 
 DROP POLICY IF EXISTS "Permitir lectura y gestion de reservas de productos" ON public.product_reservations;
+DROP POLICY IF EXISTS "Permitir administracion de reservas a autenticados" ON public.product_reservations;
 CREATE POLICY "Permitir administracion de reservas a autenticados"
     ON public.product_reservations FOR ALL TO authenticated
     USING (true) WITH CHECK (true);
 
--- ==============================================================================
--- 14. TABLA DE AJUSTES GLOBALES PRIVADA (BLINDADA CON RLS)
--- ==============================================================================
--- Almacena de forma 100% segura el PIN de João y las credenciales del Bot de Telegram.
--- ¡IMPORTANTE!: No se concede acceso SELECT ni UPDATE al rol 'anon' ni 'public'.
--- Los clientes y visitantes NUNCA pueden leer estas claves desde el navegador.
-CREATE TABLE IF NOT EXISTS public.admin_settings (
-    key VARCHAR(64) PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
-
--- Revocamos cualquier política previa permisiva
+-- 11. Políticas RLS para 'admin_settings' (¡Totalmente privada, Cero acceso anónimo!)
 DROP POLICY IF EXISTS "Permitir lectura y gestion de admin_settings" ON public.admin_settings;
 DROP POLICY IF EXISTS "Permitir solo a autenticados en admin_settings" ON public.admin_settings;
-
--- Solo los usuarios autenticados mediante Supabase Auth o funciones SECURITY DEFINER tienen acceso
 CREATE POLICY "Permitir solo a autenticados en admin_settings"
     ON public.admin_settings FOR ALL TO authenticated
     USING (true) WITH CHECK (true);
 
--- Inicialización de credenciales seguras (Token nuevo y Chat ID en servidor)
+-- 12. Credenciales Seguras de Telegram y PIN en servidor
 INSERT INTO public.admin_settings (key, value)
 VALUES 
     ('admin_pin', 'admin1234'),
@@ -255,11 +238,7 @@ VALUES
 ON CONFLICT (key) DO UPDATE 
 SET value = EXCLUDED.value, updated_at = timezone('utc'::text, now());
 
--- ==============================================================================
--- 15. NOTIFICACIONES AUTOMÁTICAS SERVER-SIDE A TELEGRAM (VÍA PG_NET)
--- ==============================================================================
--- Este trigger se dispara dentro de PostgreSQL cuando entra una reserva.
--- El navegador del cliente NO necesita conocer el bot token ni hacer peticiones directas.
+-- 13. Función de Disparo Automático a Telegram (Server-Side vía pg_net)
 CREATE OR REPLACE FUNCTION public.notify_telegram_booking()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -272,11 +251,9 @@ DECLARE
     v_msg TEXT;
     v_payload JSONB;
 BEGIN
-    -- Obtener credenciales seguras desde admin_settings (privadas de la base de datos)
     SELECT value INTO v_token FROM public.admin_settings WHERE key = 'telegram_bot_token';
     SELECT value INTO v_chat_id FROM public.admin_settings WHERE key = 'telegram_chat_id';
 
-    -- Si no están configuradas, fallback a los valores establecidos
     IF v_token IS NULL OR trim(v_token) = '' THEN
         v_token := '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw';
     END IF;
@@ -284,7 +261,6 @@ BEGIN
         v_chat_id := '6240635170';
     END IF;
 
-    -- 1. Si es una cita (tabla appointments)
     IF TG_TABLE_NAME = 'appointments' THEN
         v_msg := '💈 <b>JOAO PELUQUERO''S — NUEVA CITA REGISTRADA</b>' || chr(10) ||
                  '━━━━━━━━━━━━━━━━━━━' || chr(10) ||
@@ -297,7 +273,6 @@ BEGIN
                  '━━━━━━━━━━━━━━━━━━━' || chr(10) ||
                  '👉 <i>Gestionar en tu panel web /admin</i>';
 
-    -- 2. Si es una reserva de producto (tabla product_reservations)
     ELSIF TG_TABLE_NAME = 'product_reservations' THEN
         v_msg := '🛍️ <b>JOAO PELUQUERO''S — RESERVA DE PRODUCTO</b>' || chr(10) ||
                  '━━━━━━━━━━━━━━━━━━━' || chr(10) ||
@@ -310,7 +285,6 @@ BEGIN
                  '👉 <i>Gestionar en tu panel web /admin</i>';
     END IF;
 
-    -- Disparar petición HTTP asíncrona a la API de Telegram mediante pg_net
     v_payload := jsonb_build_object(
         'chat_id', v_chat_id,
         'text', v_msg,
@@ -324,15 +298,13 @@ BEGIN
             body := v_payload
         );
     EXCEPTION WHEN OTHERS THEN
-        -- Si pg_net no estuviese activo o fallase la red, la transacción de la cita no se aborta
-        RAISE WARNING 'No se pudo enviar la notificación de Telegram vía pg_net: %', SQLERRM;
+        RAISE WARNING 'Fallo al enviar notificación vía pg_net: %', SQLERRM;
     END;
 
     RETURN NEW;
 END;
 $$;
 
--- Triggers en las tablas clave
 DROP TRIGGER IF EXISTS trg_notify_telegram_appointment ON public.appointments;
 CREATE TRIGGER trg_notify_telegram_appointment
     AFTER INSERT ON public.appointments
@@ -345,11 +317,8 @@ CREATE TRIGGER trg_notify_telegram_product
     FOR EACH ROW
     EXECUTE FUNCTION public.notify_telegram_booking();
 
--- ==============================================================================
--- 16. FUNCIONES RPC SEGURAS PARA EL PANEL DE ADMINISTRACIÓN
--- ==============================================================================
+-- 14. Funciones RPC Seguras para el Panel de Administración
 
--- Validar PIN de administración de forma segura (sin exponer el PIN real en texto al navegador)
 CREATE OR REPLACE FUNCTION public.admin_verify_pin(p_pin TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -368,7 +337,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_verify_pin(TEXT) TO anon, authenticated;
 
--- Cambiar PIN de administración (requiere el PIN anterior)
 CREATE OR REPLACE FUNCTION public.admin_update_pin(p_old_pin TEXT, p_new_pin TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -400,7 +368,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_update_pin(TEXT, TEXT) TO anon, authenticated;
 
--- Obtener citas del panel validando el PIN real
 CREATE OR REPLACE FUNCTION public.admin_get_appointments(p_pin TEXT)
 RETURNS SETOF public.appointments
 LANGUAGE plpgsql
@@ -425,7 +392,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_get_appointments(TEXT) TO anon, authenticated;
 
--- Actualizar estado de citas validando el PIN real
 CREATE OR REPLACE FUNCTION public.admin_update_appointment_status(p_id UUID, p_status VARCHAR, p_pin TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -452,7 +418,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_update_appointment_status(UUID, VARCHAR, TEXT) TO anon, authenticated;
 
--- Probar conexión con Telegram desde el servidor (sin enviar el token al cliente)
 CREATE OR REPLACE FUNCTION public.admin_test_telegram(p_pin TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -507,7 +472,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_test_telegram(TEXT) TO anon, authenticated;
 
--- Obtener información segura del estado de Telegram (enmascarando el token)
 CREATE OR REPLACE FUNCTION public.admin_get_telegram_status(p_pin TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -544,7 +508,6 @@ BEGIN
         v_bot_name := '@JoaoPeluquero_bot';
     END IF;
 
-    -- Enmascarar token por seguridad (ej: 8838818260:AAE0...J3Qw)
     IF length(v_token) > 12 THEN
         v_masked_token := substring(v_token from 1 for 10) || '••••••••••••••••' || substring(v_token from length(v_token) - 4 for 5);
     ELSE
@@ -562,7 +525,6 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_get_telegram_status(TEXT) TO anon, authenticated;
 
--- Alerta de seguridad instantánea ante intentos fallidos de acceso al panel
 CREATE OR REPLACE FUNCTION public.admin_send_security_alert(p_ip_or_info TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -605,8 +567,3 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_send_security_alert(TEXT) TO anon, authenticated;
-
--- ==============================================================================
--- FIN DEL SCRIPT. Base de datos completa, blindada contra filtraciones y lista para producción.
--- ==============================================================================
-
