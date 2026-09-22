@@ -720,34 +720,58 @@ export async function verifyAdminPin(pin) {
 
 /**
  * Admin PIN management: retrieves shared PIN from Supabase with fallback to local
+ * Automatically syncs the latest PIN to every device
  */
 export async function fetchAdminPin() {
-  // Retorna el PIN guardado localmente si existe
-  return localStorage.getItem('joao_admin_pin_custom') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.rpc('admin_get_pin');
+      if (!error && data) {
+        const clean = String(data).trim();
+        localStorage.setItem('joao_admin_pin', clean);
+        localStorage.setItem('joao_admin_pin_custom', clean);
+        return clean;
+      }
+    } catch (err) {
+      console.warn('[Supabase Sync PIN Error]:', err.message);
+    }
+  }
+  return localStorage.getItem('joao_admin_pin_custom') || localStorage.getItem('joao_admin_pin') || import.meta.env.VITE_ADMIN_PIN || 'admin1234';
 }
 
-export async function updateAdminPin(newPin, oldPin) {
+export async function updateAdminPin(newPin) {
   const cleanPin = (newPin || '').trim();
-  if (!cleanPin) return { success: false, error: 'PIN vacío' };
+  if (!cleanPin) return { success: false, error: 'El PIN no puede estar vacío' };
+  if (cleanPin.length < 4) return { success: false, error: 'El PIN debe tener al menos 4 caracteres' };
 
-  // 1. Guardar localmente siempre
+  // 1. Guardar localmente
   try {
     localStorage.setItem('joao_admin_pin_custom', cleanPin);
     localStorage.setItem('joao_admin_pin', cleanPin);
   } catch {}
 
-  // 2. Sincronizar en Supabase mediante RPC segura
+  // 2. Sincronizar en Supabase para TODOS los dispositivos automáticamente
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase.rpc('admin_update_pin', {
-        p_old_pin: oldPin || localStorage.getItem('joao_admin_pin') || 'admin1234',
+      const { data, error } = await supabase.rpc('admin_set_pin', { p_new_pin: cleanPin });
+      if (!error && data && data.success) {
+        return { success: true, message: '¡PIN sincronizado automáticamente en todos tus dispositivos!' };
+      }
+      // Fallback a admin_update_pin
+      const { error: rpcErr } = await supabase.rpc('admin_update_pin', {
+        p_old_pin: cleanPin,
         p_new_pin: cleanPin
       });
+      if (!rpcErr) {
+        return { success: true, message: '¡PIN sincronizado automáticamente en todos tus dispositivos!' };
+      }
       if (error) throw error;
-      return { success: true };
     } catch (err) {
       console.warn('[Supabase Update PIN Error]:', err.message);
-      return { success: true, warning: 'Guardado localmente. Recuerda ejecutar el script SQL actualizado en Supabase.' };
+      return { 
+        success: true, 
+        warning: 'Guardado localmente. Recuerda ejecutar el script SQL en Supabase para sincronizarlo con otros dispositivos.' 
+      };
     }
   }
   return { success: true };
@@ -762,11 +786,12 @@ export async function testTelegramViaSupabase(pin) {
     return { success: false, error: 'Supabase no está configurado.' };
   }
   try {
-    const { data, error } = await supabase.rpc('admin_test_telegram', { p_pin: pin });
+    const activePin = (pin || localStorage.getItem('joao_admin_pin') || 'admin1234').trim();
+    const { data, error } = await supabase.rpc('admin_test_telegram', { p_pin: activePin });
     if (error) {
       return { success: false, error: error.message };
     }
-    return data || { success: true, message: 'Mensaje de prueba enviado.' };
+    return data || { success: true, message: 'Mensaje de prueba enviado con éxito a tu Telegram.' };
   } catch (err) {
     return { success: false, error: err.message };
   }

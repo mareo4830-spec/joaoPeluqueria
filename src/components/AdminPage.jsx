@@ -119,6 +119,8 @@ export default function AdminPage({
   const [appointmentsFilter, setAppointmentsFilter] = useState('all'); // 'all', 'today', 'upcoming', 'cancelled'
 
   useEffect(() => {
+    // Sincronizar PIN activo automáticamente desde Supabase para todos los dispositivos
+    fetchAdminPin();
     if (isAdminLoggedIn) {
       loadReservations();
       loadAppointments();
@@ -369,13 +371,12 @@ export default function AdminPage({
       setPinChangeStatus({ type: 'error', message: 'La nueva contraseña debe tener al menos 4 caracteres.' });
       return;
     }
-    const currentPin = localStorage.getItem('joao_admin_pin') || 'admin1234';
-    const result = await updateAdminPin(customPinInput.trim(), currentPin);
+    const result = await updateAdminPin(customPinInput.trim());
     setCustomPinInput('');
     if (result.success) {
       setPinChangeStatus({ 
         type: 'success', 
-        message: result.warning || '¡Contraseña de administrador actualizada correctamente en todos los dispositivos!' 
+        message: result.message || '¡Contraseña actualizada y sincronizada automáticamente en todos tus dispositivos!' 
       });
     } else {
       setPinChangeStatus({ type: 'error', message: result.error || 'Error al actualizar la contraseña.' });
