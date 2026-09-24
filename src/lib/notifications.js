@@ -23,8 +23,9 @@ export const ESTABLISHED_TELEGRAM_CHAT_ID = '6240635170';
  */
 export function getTelegramConfig() {
   if (typeof window !== 'undefined') {
+    // Por ciberseguridad (Zero-Client-Exposure), nunca almacenar tokens en localStorage del navegador
     const saved = localStorage.getItem('joao_telegram_token');
-    if (saved && (saved.includes('AAGfq') || saved.includes('8838818260'))) {
+    if (saved) {
       localStorage.removeItem('joao_telegram_token');
     }
   }

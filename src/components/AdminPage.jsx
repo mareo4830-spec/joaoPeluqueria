@@ -14,7 +14,8 @@ import {
   verifyAdminPin,
   updateAdminPin,
   sendSecurityAlertViaSupabase,
-  getTelegramStatusViaSupabase
+  getTelegramStatusViaSupabase,
+  updateTelegramTokenViaSupabase
 } from '../lib/supabase';
 import { 
   getTelegramConfig, 
@@ -124,6 +125,7 @@ export default function AdminPage({
     if (isAdminLoggedIn) {
       loadReservations();
       loadAppointments();
+      loadTelegramStatus();
     }
   }, [isAdminLoggedIn]);
 
@@ -135,13 +137,21 @@ export default function AdminPage({
   };
 
   // Telegram and Settings State
-  const [telegramTokenInput, setTelegramTokenInput] = useState(() => getTelegramConfig().token);
-  const [telegramChatIdInput, setTelegramChatIdInput] = useState(() => getTelegramConfig().chatId);
+  const [telegramServerStatus, setTelegramServerStatus] = useState(null);
+  const [newTelegramToken, setNewTelegramToken] = useState('');
+  const [isSavingTelegramToken, setIsSavingTelegramToken] = useState(false);
+  const [telegramSaveStatus, setTelegramSaveStatus] = useState(null);
   const [telegramTestStatus, setTelegramTestStatus] = useState(null);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
 
   const [customPinInput, setCustomPinInput] = useState('');
   const [pinChangeStatus, setPinChangeStatus] = useState(null);
+
+  const loadTelegramStatus = async () => {
+    const pin = localStorage.getItem('joao_admin_pin_custom') || localStorage.getItem('joao_admin_pin') || 'admin1234';
+    const status = await getTelegramStatusViaSupabase(pin);
+    setTelegramServerStatus(status);
+  };
 
   const loadAppointments = async () => {
     setIsLoadingAppointments(true);
@@ -362,6 +372,36 @@ export default function AdminPage({
       setTelegramTestStatus({ type: 'success', message: result.message || '¡Mensaje de prueba enviado con éxito a tu Telegram desde el servidor Supabase! Revisa tu móvil.' });
     } else {
       setTelegramTestStatus({ type: 'error', message: `Error al conectar con Telegram: ${result.error}` });
+    }
+  };
+
+  const handleSaveTelegramToken = async (e) => {
+    e.preventDefault();
+    const cleanToken = newTelegramToken.trim();
+    if (!cleanToken || cleanToken.length < 20 || !cleanToken.includes(':')) {
+      setTelegramSaveStatus({ 
+        type: 'error', 
+        message: 'Por favor, introduce un token válido de Telegram (formato: 123456789:ABCdef...).' 
+      });
+      return;
+    }
+    setIsSavingTelegramToken(true);
+    setTelegramSaveStatus(null);
+    const pin = localStorage.getItem('joao_admin_pin_custom') || localStorage.getItem('joao_admin_pin') || 'admin1234';
+    const res = await updateTelegramTokenViaSupabase(cleanToken, pin);
+    setIsSavingTelegramToken(false);
+    if (res.success) {
+      setTelegramSaveStatus({ 
+        type: 'success', 
+        message: res.message || '¡Token de Telegram guardado de forma segura en Supabase!' 
+      });
+      setNewTelegramToken('');
+      await loadTelegramStatus();
+    } else {
+      setTelegramSaveStatus({ 
+        type: 'error', 
+        message: res.error || 'Error al guardar el token.' 
+      });
     }
   };
 
@@ -1462,25 +1502,84 @@ export default function AdminPage({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.8125rem' }}>
                       <div>
                         <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>BOT OFICIAL:</span>
-                        <strong style={{ color: '#09090b' }}>@JoaoPeluquero_bot</strong>
+                        <strong style={{ color: '#09090b' }}>{telegramServerStatus?.bot_name || '@JoaoPeluquero_bot'}</strong>
                       </div>
                       <div>
                         <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>CHAT ID DESTINATARIO:</span>
-                        <strong style={{ color: '#09090b' }}>6240635170 (Móvil de João)</strong>
+                        <strong style={{ color: '#09090b' }}>{telegramServerStatus?.chat_id || '6240635170'} (Móvil de João)</strong>
                       </div>
                       <div>
                         <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>TOKEN TELEGRAM:</span>
-                        <strong style={{ color: '#16a34a' }}>883881••••••••••••••••BxJ3Qw (Seguro)</strong>
+                        <strong style={{ color: telegramServerStatus?.configured ? '#16a34a' : '#ea580c' }}>
+                          {telegramServerStatus?.masked_token || '••••••••••••••••'} ({telegramServerStatus?.configured ? 'Protegido' : 'Pendiente'})
+                        </strong>
                       </div>
                       <div>
                         <span style={{ color: '#71717a', display: 'block', fontSize: '0.6875rem' }}>ESTADO DEL SERVICIO:</span>
-                        <strong style={{ color: '#16a34a' }}>● Notificaciones 24/7 en tiempo real</strong>
+                        <strong style={{ color: telegramServerStatus?.configured ? '#16a34a' : '#ca8a04' }}>
+                          {telegramServerStatus?.configured ? '● Notificaciones 24/7 en tiempo real' : '⚠️ Pendiente de configurar token'}
+                        </strong>
                       </div>
                     </div>
                     <p style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '1rem', borderTop: '1px solid #e4e4e7', paddingTop: '0.75rem', lineHeight: 1.5 }}>
                       🛡️ <b>Ciberseguridad activa:</b> Ningún visitante de la web puede capturar tu token con F12 ni inspeccionando peticiones de red. Cada cita o reserva dispara automáticamente una petición HTTP desde los servidores de Supabase hacia Telegram.
                     </p>
                   </div>
+
+                  {/* Formulario Seguro para Actualizar Token en Servidor */}
+                  <form onSubmit={handleSaveTelegramToken} style={{ marginBottom: '1.5rem', backgroundColor: '#fafafa', padding: '1.25rem', border: '1px solid #e4e4e7' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                      <Key size={16} style={{ color: '#09090b' }} />
+                      <strong className="font-headline" style={{ fontSize: '0.95rem', color: '#09090b' }}>
+                        GUARDAR NUEVO TOKEN DE TELEGRAM (ALMACENAMIENTO SEGURO)
+                      </strong>
+                    </div>
+                    <p className="font-mono" style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '1rem', lineHeight: 1.4 }}>
+                      Si generaste un nuevo token o revocaste el anterior en @BotFather, pégalo aquí. Se guardará directamente en tu base de datos Supabase cifrado y nunca se expondrá en Git ni a los clientes web.
+                    </p>
+
+                    {telegramSaveStatus && (
+                      <div 
+                        style={{ 
+                          padding: '0.75rem 1rem', 
+                          marginBottom: '1rem', 
+                          backgroundColor: telegramSaveStatus.type === 'success' ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${telegramSaveStatus.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                          color: telegramSaveStatus.type === 'success' ? '#166534' : '#991b1b',
+                          fontSize: '0.8125rem'
+                        }}
+                        className="font-mono"
+                      >
+                        {telegramSaveStatus.message}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <input
+                        type="password"
+                        placeholder="Pega tu nuevo token de Telegram (ej: 123456789:ABCdef...)"
+                        value={newTelegramToken}
+                        onChange={(e) => setNewTelegramToken(e.target.value)}
+                        className="font-mono"
+                        style={{
+                          flex: 1,
+                          minWidth: '260px',
+                          padding: '0.75rem',
+                          border: '1px solid #d4d4d8',
+                          fontSize: '0.8125rem',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSavingTelegramToken}
+                        className="btn-solid-black font-mono"
+                        style={{ padding: '0.75rem 1.25rem', fontSize: '0.8125rem' }}
+                      >
+                        {isSavingTelegramToken ? 'GUARDANDO...' : 'ACTUALIZAR TOKEN EN SERVIDOR'}
+                      </button>
+                    </div>
+                  </form>
 
                   {/* Telegram Status feedback banner */}
                   {telegramTestStatus && (

@@ -229,14 +229,17 @@ CREATE POLICY "Permitir solo a autenticados en admin_settings"
     USING (true) WITH CHECK (true);
 
 -- 12. Credenciales Seguras de Telegram y PIN en servidor
+-- NOTA DE CIBERSEGURIDAD (NIST SP 800-61 / SANS PICERL / OWASP):
+-- NUNCA coloques tokens reales de bots en archivos versionados en Git/GitHub.
+-- El token se almacena de forma segura en la base de datos Supabase mediante admin_set_telegram_token()
+-- o introduciéndolo directamente en la tabla 'admin_settings' desde el panel de Supabase.
 INSERT INTO public.admin_settings (key, value)
 VALUES 
     ('admin_pin', 'admin1234'),
-    ('telegram_bot_token', '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw'),
+    ('telegram_bot_token', 'CONFIGURA_TU_TOKEN_EN_ADMIN_SETTINGS'),
     ('telegram_chat_id', '6240635170'),
     ('telegram_bot_name', '@JoaoPeluquero_bot')
-ON CONFLICT (key) DO UPDATE 
-SET value = EXCLUDED.value, updated_at = timezone('utc'::text, now());
+ON CONFLICT (key) DO NOTHING;
 
 -- 13. Función de Disparo Automático a Telegram (Server-Side vía pg_net)
 CREATE OR REPLACE FUNCTION public.notify_telegram_booking()
@@ -254,8 +257,9 @@ BEGIN
     SELECT value INTO v_token FROM public.admin_settings WHERE key = 'telegram_bot_token';
     SELECT value INTO v_chat_id FROM public.admin_settings WHERE key = 'telegram_chat_id';
 
-    IF v_token IS NULL OR trim(v_token) = '' THEN
-        v_token := '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw';
+    -- Si no hay token configurado o contiene el valor por defecto, salir limpiamente sin error
+    IF v_token IS NULL OR trim(v_token) = '' OR v_token LIKE '%CONFIGURA%' OR v_token NOT LIKE '%:%' THEN
+        RETURN NEW;
     END IF;
     IF v_chat_id IS NULL OR trim(v_chat_id) = '' THEN
         v_chat_id := '6240635170';
@@ -447,8 +451,11 @@ BEGIN
     SELECT value INTO v_token FROM public.admin_settings WHERE key = 'telegram_bot_token';
     SELECT value INTO v_chat_id FROM public.admin_settings WHERE key = 'telegram_chat_id';
 
-    IF v_token IS NULL OR trim(v_token) = '' THEN
-        v_token := '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw';
+    IF v_token IS NULL OR trim(v_token) = '' OR v_token LIKE '%CONFIGURA%' OR v_token NOT LIKE '%:%' THEN
+        RETURN jsonb_build_object(
+            'success', false, 
+            'error', 'Token de Telegram no configurado en la tabla admin_settings de Supabase.'
+        );
     END IF;
     IF v_chat_id IS NULL OR trim(v_chat_id) = '' THEN
         v_chat_id := '6240635170';
@@ -489,6 +496,7 @@ DECLARE
     v_chat_id TEXT;
     v_bot_name TEXT;
     v_masked_token TEXT;
+    v_is_configured BOOLEAN := false;
 BEGIN
     SELECT value INTO v_real_pin FROM public.admin_settings WHERE key = 'admin_pin';
     IF v_real_pin IS NULL THEN
@@ -503,9 +511,6 @@ BEGIN
     SELECT value INTO v_chat_id FROM public.admin_settings WHERE key = 'telegram_chat_id';
     SELECT value INTO v_bot_name FROM public.admin_settings WHERE key = 'telegram_bot_name';
 
-    IF v_token IS NULL OR trim(v_token) = '' THEN
-        v_token := '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw';
-    END IF;
     IF v_chat_id IS NULL OR trim(v_chat_id) = '' THEN
         v_chat_id := '6240635170';
     END IF;
@@ -513,15 +518,17 @@ BEGIN
         v_bot_name := '@JoaoPeluquero_bot';
     END IF;
 
-    IF length(v_token) > 12 THEN
-        v_masked_token := substring(v_token from 1 for 10) || '••••••••••••••••' || substring(v_token from length(v_token) - 4 for 5);
+    IF v_token IS NOT NULL AND trim(v_token) != '' AND v_token NOT LIKE '%CONFIGURA%' AND length(v_token) >= 20 THEN
+        v_is_configured := true;
+        v_masked_token := substring(v_token from 1 for 6) || '••••••••••••••••' || substring(v_token from length(v_token) - 3 for 4);
     ELSE
-        v_masked_token := '••••••••';
+        v_is_configured := false;
+        v_masked_token := 'Pendiente de configurar';
     END IF;
 
     RETURN jsonb_build_object(
         'success', true,
-        'configured', true,
+        'configured', v_is_configured,
         'bot_name', v_bot_name,
         'chat_id', v_chat_id,
         'masked_token', v_masked_token
@@ -544,8 +551,8 @@ BEGIN
     SELECT value INTO v_token FROM public.admin_settings WHERE key = 'telegram_bot_token';
     SELECT value INTO v_chat_id FROM public.admin_settings WHERE key = 'telegram_chat_id';
 
-    IF v_token IS NULL OR trim(v_token) = '' THEN
-        v_token := '8838818260:AAE0DRC9Zj4iw1QfVdn2nJJfi1YTCBxJ3Qw';
+    IF v_token IS NULL OR trim(v_token) = '' OR v_token LIKE '%CONFIGURA%' OR v_token NOT LIKE '%:%' THEN
+        RETURN FALSE;
     END IF;
     IF v_chat_id IS NULL OR trim(v_chat_id) = '' THEN
         v_chat_id := '6240635170';
@@ -572,3 +579,38 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.admin_send_security_alert(TEXT) TO anon, authenticated;
+
+-- 18. Actualizar Token de Telegram desde el Panel de Administración (Zero-Client-Exposure)
+CREATE OR REPLACE FUNCTION public.admin_set_telegram_token(p_token TEXT, p_pin TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_real_pin TEXT;
+    v_clean_token TEXT;
+BEGIN
+    SELECT value INTO v_real_pin FROM public.admin_settings WHERE key = 'admin_pin';
+    IF v_real_pin IS NULL THEN
+        v_real_pin := 'admin1234';
+    END IF;
+
+    IF p_pin IS NULL OR trim(p_pin) != trim(v_real_pin) THEN
+        RETURN jsonb_build_object('success', false, 'error', 'PIN de administración inválido');
+    END IF;
+
+    v_clean_token := trim(COALESCE(p_token, ''));
+    IF length(v_clean_token) < 20 OR v_clean_token NOT LIKE '%:%' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Formato de token de Telegram inválido (debe contener formato 123456789:ABCdef...)');
+    END IF;
+
+    INSERT INTO public.admin_settings (key, value, updated_at)
+    VALUES ('telegram_bot_token', v_clean_token, timezone('utc'::text, now()))
+    ON CONFLICT (key) DO UPDATE
+    SET value = EXCLUDED.value, updated_at = timezone('utc'::text, now());
+
+    RETURN jsonb_build_object('success', true, 'message', '¡Token de Telegram guardado de forma segura en el servidor Supabase!');
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.admin_set_telegram_token(TEXT, TEXT) TO anon, authenticated;

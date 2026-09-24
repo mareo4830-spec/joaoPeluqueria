@@ -817,26 +817,51 @@ export async function getTelegramStatusViaSupabase(pin) {
   if (!isSupabaseConfigured || !supabase) {
     return {
       success: true,
-      configured: true,
+      configured: false,
       bot_name: '@JoaoPeluquero_bot',
       chat_id: '6240635170',
-      masked_token: '883881••••••••••••••••BxJ3Qw'
+      masked_token: '••••••••••••••••'
     };
   }
   try {
-    const { data, error } = await supabase.rpc('admin_get_telegram_status', { p_pin: pin });
+    const activePin = (pin || (typeof window !== 'undefined' ? localStorage.getItem('joao_admin_pin') : null) || 'admin1234').trim();
+    const { data, error } = await supabase.rpc('admin_get_telegram_status', { p_pin: activePin });
     if (!error && data && data.success) {
       return data;
     }
   } catch {}
   return {
     success: true,
-    configured: true,
+    configured: false,
     bot_name: '@JoaoPeluquero_bot',
     chat_id: '6240635170',
-    masked_token: '883881••••••••••••••••BxJ3Qw'
+    masked_token: '••••••••••••••••'
   };
 }
+
+/**
+ * Guarda el nuevo token de Telegram directamente en la base de datos Supabase
+ * ¡CERO exposición en Git ni en el cliente web!
+ */
+export async function updateTelegramTokenViaSupabase(token, pin) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Supabase no está configurado.' };
+  }
+  try {
+    const activePin = (pin || (typeof window !== 'undefined' ? localStorage.getItem('joao_admin_pin') : null) || 'admin1234').trim();
+    const { data, error } = await supabase.rpc('admin_set_telegram_token', {
+      p_token: token.trim(),
+      p_pin: activePin
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return data || { success: true, message: '¡Token guardado de forma segura en Supabase!' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 
 
 
