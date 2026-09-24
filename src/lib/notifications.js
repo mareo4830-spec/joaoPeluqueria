@@ -80,8 +80,8 @@ export async function testTelegramNotification(customPin, customToken, customCha
     console.warn('[Server Telegram Test Notice]:', err.message);
   }
 
-  // 2. Fallback local solo si el usuario introdujo manualmente un token temporal
-  const fallbackToken = (customToken || (typeof window !== 'undefined' ? localStorage.getItem('joao_telegram_token') : null) || '').trim();
+  // 2. Fallback local si el usuario configuró un token personalizado
+  const fallbackToken = (customToken || (typeof window !== 'undefined' ? (localStorage.getItem('joao_telegram_token_custom') || localStorage.getItem('joao_telegram_token')) : null) || '').trim();
   const fallbackChatId = (customChatId || ESTABLISHED_TELEGRAM_CHAT_ID).trim();
 
   if (!fallbackToken) {
